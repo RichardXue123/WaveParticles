@@ -19,7 +19,7 @@ namespace OneBitLab.StormRider.Core
         private const float c_RaycastDist = 100.0f;
 
         //-------------------------------------------------------------
-        private BuildPhysicsWorld     m_BuildPhysicsWorld;
+        private BuildPhysicsWorld     m_BuildPhysicsWorld; //Unity.Physics.Systems
         private EndFramePhysicsSystem m_EndFramePhysicsSystem;
         private ExportPhysicsWorld    m_ExportPhysicsWorld;
         private WaveSpawnSystem       m_WaveSpawnSystem;
@@ -74,7 +74,7 @@ namespace OneBitLab.StormRider.Core
                 Filter = new CollisionFilter
                 {
                     BelongsTo    = ~0u,
-                    CollidesWith = 1u << 0, // Water group
+                    CollidesWith = 1u << 0, // Water group 010=2
                     GroupIndex   = 0
                 }
             };

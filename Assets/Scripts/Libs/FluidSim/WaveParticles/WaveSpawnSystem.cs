@@ -90,7 +90,7 @@ namespace OneBitLab.FluidSim
             // When number of particles is small we can let them live longer
             int subDivNumber = particleCount < 50_000 ? 4 : 3;
 
-            s_WaveParticleMinHeight = c_WaveParticleHeight / math.pow( 3, subDivNumber );
+            s_WaveParticleMinHeight = c_WaveParticleHeight / math.pow( 3, subDivNumber );//如果高度小于这个，那就可以裁剪掉
         }
 
         //-------------------------------------------------------------

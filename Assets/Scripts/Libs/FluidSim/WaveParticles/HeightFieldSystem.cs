@@ -27,7 +27,7 @@ namespace OneBitLab.FluidSim
                                               m_HeightFieldRT.height,
                                               TextureFormat.RFloat,
                                               mipChain: false,
-                                              linear: true );
+                                              linear: true );//创建纹理
 
             m_FilterMat = new Material( Shader.Find( "FluidSim/WaveFilter_02" ) );
             m_FilterMat.SetFloat( "_WaveParticleRadius", WaveSpawnSystem.c_WaveParticleRadius );
@@ -38,7 +38,7 @@ namespace OneBitLab.FluidSim
         {
             NativeArray<float> pixData = m_HeightFieldTex.GetRawTextureData<float>();
 
-            // Clear texture color to black
+            // Clear texture color to black//初始化为0，每个时刻一开始都要初始化成0
             Job
                 .WithCode( () =>
                 {
@@ -52,8 +52,8 @@ namespace OneBitLab.FluidSim
             // Bake data we want to capture in the job
             int   w      = m_HeightFieldRT.width;
             int   h      = m_HeightFieldRT.height;
-            float border = 5.0f;
-            float texelW = 2.0f * border / w;
+            float border = 5.0f;//那个plane的大小是这么大
+            float texelW = 2.0f * border / w;//所以可以判断出采样间隔
             float texelH = 2.0f * border / h;
             // Project all wave particles to texture
             // TODO: split in two jobs, first to create list of all modification (can be parallel)
@@ -64,7 +64,7 @@ namespace OneBitLab.FluidSim
                     // Also filter particles in the first and last raws of hegihtmap, 
                     // that helps us reduce three "if" statements during anti-aliasing
                     if( math.abs( wPos.Value.x ) >= ( border - 5.0f * texelW ) ||
-                        math.abs( wPos.Value.y ) >= ( border - 5.0f * texelH ) )
+                        math.abs( wPos.Value.y ) >= ( border - 5.0f * texelH ) )//粒子位置超出了范围就忽略
                     {
                         return;
                     }

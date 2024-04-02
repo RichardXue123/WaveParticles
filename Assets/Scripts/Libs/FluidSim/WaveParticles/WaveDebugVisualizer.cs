@@ -19,10 +19,10 @@ namespace OneBitLab.FluidSim
         private void OnDrawGizmos()
         {
             if( !m_DebugQueue.IsCreated ) return;
-
+            // Debug.Log( "hi" );
             while( m_DebugQueue.TryDequeue( out WaveDebugData data ) )
             {
-                // Debug.Log( time );
+                
                 var     center       = new Vector3( data.Pos.x, 0, data.Pos.y );
                 var     origin       = new Vector3( data.Origin.x, 0, data.Origin.y );
                 var     dir          = new Vector3( data.Dir.x, 0, data.Dir.y );
@@ -36,6 +36,7 @@ namespace OneBitLab.FluidSim
                 Gizmos.color = Color.yellow;
                 Gizmos.DrawWireSphere( origin, 0.02f );
                 Gizmos.DrawLine( origin, center );
+                // Debug.Log( origin );
             }
         }
 

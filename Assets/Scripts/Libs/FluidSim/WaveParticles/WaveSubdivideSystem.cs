@@ -55,7 +55,7 @@ namespace OneBitLab.FluidSim
 
                     if( height.Value < cWPMinHeight )
                     {
-                        // Particle reached min height, schedule it for deletion
+                        // Particle reached min height, schedule it for deletion 高度过小就剔除掉
                         deleteECB.DestroyEntity( entityInQueryIndex, entity );
                         return;
                     }
