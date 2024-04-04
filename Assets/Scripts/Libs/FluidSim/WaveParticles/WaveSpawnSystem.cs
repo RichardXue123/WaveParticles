@@ -3,6 +3,8 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
+using System;
+using UnityEngine;
 using Random = Unity.Mathematics.Random;
 
 namespace OneBitLab.FluidSim
@@ -14,8 +16,10 @@ namespace OneBitLab.FluidSim
         public const float c_WaveParticleRadius = 0.15f;
         public const float c_WaveParticleHeight = 0.05f;
         public const float c_WaveParticleSpeed  = 0.5f;
+        public float m_windSpeed  = 0.5f;
+        private const float gravity=9.8f;
 
-        private const int c_StartEntitiesCount = 0;
+        private const int c_StartEntitiesCount = 100;
 
         public static float s_WaveParticleMinHeight = c_WaveParticleHeight;
 
@@ -59,22 +63,28 @@ namespace OneBitLab.FluidSim
                 typeof(WaveSpeed),
                 typeof(DispersAngle),
                 typeof(TimeToReflect),
-                typeof(TimeToSubdiv)
+                typeof(TimeToSubdiv),
+                typeof(WaveVector),
+                typeof(Radius)
             );
 
             var entities = new NativeArray<Entity>( c_StartEntitiesCount, Allocator.Temp );
             EntityManager.CreateEntity( m_Archetype, entities );
 
+            float k = 3.0f;//先默认一个值
+            float speed = (float)Math.Sqrt(gravity/k);
+            float radius = (float)Math.PI/k;
             for( int i = 0; i < c_StartEntitiesCount; i++ )
             {
+                float2 dir = math.normalizesafe(m_Rnd.NextFloat2( -1.0f, 1.0f ));
+                float height =SpectrumService.Instance.PhillipsSpectrum(k,dir);
+                Debug.Log("height"+height);
                 EntityManager.SetComponentData( entities[ i ], new WavePos {Value = m_Rnd.NextFloat2( -5.0f, 5.0f )} );
-                EntityManager.SetComponentData( entities[ i ], new WaveHeight {Value = c_WaveParticleHeight} );
-                EntityManager.SetComponentData( entities[ i ], new WaveSpeed {Value = c_WaveParticleSpeed} );
-                EntityManager.SetComponentData( entities[ i ],
-                                                new WaveDir
-                                                {
-                                                    Value = math.normalizesafe( m_Rnd.NextFloat2( -1.0f, 1.0f ) )
-                                                } );
+                EntityManager.SetComponentData( entities[ i ], new WaveHeight {Value = height} );
+                EntityManager.SetComponentData( entities[ i ], new WaveSpeed {Value = speed} );
+                EntityManager.SetComponentData( entities[ i ], new WaveDir { Value = dir } );
+                EntityManager.SetComponentData( entities[ i ], new WaveVector { Value = k } );
+                EntityManager.SetComponentData( entities[ i ], new Radius { Value = radius } );
             }
 
             entities.Dispose();

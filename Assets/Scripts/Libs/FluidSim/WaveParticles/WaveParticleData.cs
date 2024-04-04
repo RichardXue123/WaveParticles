@@ -45,5 +45,13 @@ namespace OneBitLab.FluidSim
     {
         public float Value;
     }
+    public struct WaveVector : IComponentData
+    {
+        public float Value;
+    }
+    public struct Radius : IComponentData
+    {
+        public float Value;
+    }
     //-------------------------------------------------------------
 }

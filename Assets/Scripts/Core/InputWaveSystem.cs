@@ -6,6 +6,7 @@ using Unity.Jobs;
 using UnityEngine;
 using Unity.Physics;
 using Unity.Physics.Systems;
+using UnityEngine.UI;
 using RaycastHit = Unity.Physics.RaycastHit;
 
 namespace OneBitLab.StormRider.Core
