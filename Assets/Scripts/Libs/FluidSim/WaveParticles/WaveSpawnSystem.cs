@@ -19,7 +19,7 @@ namespace OneBitLab.FluidSim
         public float m_windSpeed  = 0.5f;
         private const float gravity=9.8f;
 
-        private const int c_StartEntitiesCount = 100;
+        private const int c_StartEntitiesCount = 1200;
 
         public static float s_WaveParticleMinHeight = c_WaveParticleHeight;
 
@@ -71,13 +71,14 @@ namespace OneBitLab.FluidSim
             var entities = new NativeArray<Entity>( c_StartEntitiesCount, Allocator.Temp );
             EntityManager.CreateEntity( m_Archetype, entities );
 
-            float k = 3.0f;//先默认一个值
-            float speed = (float)Math.Sqrt(gravity/k);
-            float radius = (float)Math.PI/k;
+            float k = 5.0f;//先默认一个值
+            float kLength = math.max(0.001f, k);
+            float speed = (float)Math.Sqrt(gravity/ kLength);
+            float radius = (float)Math.PI/ kLength;
             for( int i = 0; i < c_StartEntitiesCount; i++ )
             {
                 float2 dir = math.normalizesafe(m_Rnd.NextFloat2( -1.0f, 1.0f ));
-                float height =SpectrumService.Instance.PhillipsSpectrum(k,dir);
+                float height = (float)Math.Sqrt(SpectrumService.Instance.PhillipsSpectrum(k,dir)*8);
                 Debug.Log("height"+height);
                 EntityManager.SetComponentData( entities[ i ], new WavePos {Value = m_Rnd.NextFloat2( -5.0f, 5.0f )} );
                 EntityManager.SetComponentData( entities[ i ], new WaveHeight {Value = height} );

@@ -13,7 +13,7 @@ namespace OneBitLab.Services
         [SerializeField]
         public float windSpeed;
         const float G = 9.8f;
-        const float A = 73.0f;
+        const float A = 30.0f;//73
         private void OnCreate()
         {
             windDir = new float2(1.0f, 0.0f);
@@ -47,6 +47,10 @@ namespace OneBitLab.Services
             // Debug.Log("phillips"+phillips);
             // Debug.Log("dirSpectrum"+dirSpectrum);
             return phillips*math.abs(dirSpectrum);
+        }
+        public float JONSWAPSpectrum(float k, float2 dir)
+        {
+
         }
         //-------------------------------------------------------------
     }
