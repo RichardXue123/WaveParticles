@@ -12,11 +12,29 @@ namespace OneBitLab.Services
         public float2 windDir;
         [SerializeField]
         public float windSpeed;
+        [SerializeField]
+        public float Fetch;
         const float G = 9.8f;
-        const float A = 30.0f;//73
+        const float A = 15.0f;//73
+
+        static int g = 7;
+        static double[] p = {0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+        771.32342877765313, -176.61502916214059, 12.507343278686905,
+        -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7};
         private void OnCreate()
         {
             windDir = new float2(1.0f, 0.0f);
+        }
+        private double MyGammaDouble(double z)
+        {
+            if (z < 0.5)
+                return Math.PI / (Math.Sin(Math.PI * z) * MyGammaDouble(1 - z));
+            z -= 1;
+            double x = p[0];
+            for (var i = 1; i < g + 2; i++)
+                x += p[i] / (z + i);
+            double t = z + g + 0.5;
+            return Math.Sqrt(2 * Math.PI) * (Math.Pow(t, z + 0.5)) * Math.Exp(-t) * x;
         }
         //-------------------------------------------------------------
         public float DebugSpectrum(float k, float2 dir)
@@ -50,7 +68,24 @@ namespace OneBitLab.Services
         }
         public float JONSWAPSpectrum(float k, float2 dir)
         {
-
+            float kLength = k;
+            //先计算S(w)
+            double w = Math.Sqrt(G * kLength);
+            float U = windSpeed;
+            double alpha = 0.076 * Math.Pow(U * U / Fetch / G, 0.22);
+            double wp = 22 * Math.Pow(G * G / U / Fetch, 0.333333);
+            double gamaj = 7 * Math.Pow(G * Fetch / U / U, -0.142);
+            double sigma = w > wp ? 0.09 : 0.07;
+            double r = Math.Exp(-1 * (w - wp) * (w - wp) / (2 * sigma * sigma * wp * wp));
+            double Sjw = (alpha * G * G) / Math.Pow(w, 5) * Math.Exp(-5 / 4 * Math.Pow(wp / w, 4)) * Math.Pow(gamaj, r);
+            //然后计算dir
+            double miu = w > wp ? -2.5 : 5.0;
+            double sw = 16 * Math.Pow(w / wp, miu);
+            double theta = Math.Atan2(dir.y, dir.x) - Math.Atan2(windDir.y, windDir.x);
+            double DirSpectrum = MyGammaDouble(sw + 1) / (2 * Math.Sqrt(Math.PI) * MyGammaDouble(sw + 0.5)) * Math.Pow(Math.Cos(theta / 2), 2 * sw);
+            //最后转换到sk
+            double Sk = Sjw * DirSpectrum * 0.5 * Math.Sqrt(G / kLength);
+            return (float)Sk;
         }
         //-------------------------------------------------------------
     }
