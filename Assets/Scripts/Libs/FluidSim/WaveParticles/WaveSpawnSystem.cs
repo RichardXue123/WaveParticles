@@ -70,7 +70,7 @@ namespace OneBitLab.FluidSim
             var entities = new NativeArray<Entity>( c_StartEntitiesCount, Allocator.Temp );
             EntityManager.CreateEntity( m_Archetype, entities );
 
-            float k = 1.0f;//先默认一个值
+            float k = 5.0f;//先默认一个值
             float kLength = math.max(0.001f, k);
             float speed = (float)Math.Sqrt(gravity/ kLength);
             float radius = (float)Math.PI/ kLength;

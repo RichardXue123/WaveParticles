@@ -4,6 +4,20 @@ using UnityEngine;
 
 namespace OneBitLab.FluidSim
 {
+    static class BringYourOwnDelegate
+    {
+        // Declare the delegate that takes 12 parameters. T0 is used for the Entity argument
+        [Unity.Entities.CodeGeneratedJobForEach.EntitiesForEachCompatible]
+        public delegate void CustomForEachDelegate<T0, T1, T2, T3, T4, T5, T6, T7, T8>
+            (T0 t0, T1 t1, ref T2 t2, ref T3 t3, ref T4 t4, in T5 t5,
+            in T6 t6, in T7 t7, in T8 t8);
+
+        // Declare the function overload
+        public static TDescription ForEach<TDescription, T0, T1, T2, T3, T4, T5, T6, T7, T8>
+            (this TDescription description, CustomForEachDelegate<T0, T1, T2, T3, T4, T5, T6, T7, T8> codeToRun)
+            where TDescription : struct, Unity.Entities.CodeGeneratedJobForEach.ISupportForEachWithUniversalDelegate =>
+            LambdaForEachDescriptionConstructionMethods.ThrowCodeGenException<TDescription>();
+    }
     // This system handle subdivide phase of simulation
     // Once time for next subdivision run out we create two new neighboring particles and update current one
     // We also calculate time of next subdivision based on the new dispersion angle
@@ -43,7 +57,8 @@ namespace OneBitLab.FluidSim
                             ref DispersAngle angle,
                             in  WaveDir      waveDir,
                             in  WavePos      wavePos,
-                            in  WaveOrigin   waveOrigin ) =>
+                            in  WaveOrigin   waveOrigin,
+                            in  WaveSpeed    waveSpeed ) =>
                 {
                     tts.Value -= dTime;
 
@@ -67,7 +82,7 @@ namespace OneBitLab.FluidSim
                     float totalSubdivDistance = cWPRadius / ( 3.0f * math.tan( newAngle * 0.5f ) );
                     float distanceTraveled    = math.distance( waveOrigin.Value, wavePos.Value );
                     float distanceToSubdiv    = totalSubdivDistance - distanceTraveled;
-                    float timeToSubdiv        = distanceToSubdiv / cWPSpeed;
+                    float timeToSubdiv        = distanceToSubdiv / waveSpeed.Value;
 
                     // Create left particle
                     float2 leftWaveDir = math.rotate(
@@ -81,7 +96,7 @@ namespace OneBitLab.FluidSim
                     createECB.SetComponent( entityInQueryIndex, leftEntity, waveOrigin );
                     createECB.SetComponent( entityInQueryIndex, leftEntity, new WaveDir {Value      = leftWaveDir} );
                     createECB.SetComponent( entityInQueryIndex, leftEntity, new WaveHeight {Value   = newHeight} );
-                    createECB.SetComponent( entityInQueryIndex, leftEntity, new WaveSpeed {Value    = cWPSpeed} );
+                    createECB.SetComponent( entityInQueryIndex, leftEntity, new WaveSpeed {Value    = waveSpeed.Value} );
                     createECB.SetComponent( entityInQueryIndex, leftEntity, new DispersAngle {Value = newAngle} );
                     createECB.SetComponent( entityInQueryIndex, leftEntity, new TimeToSubdiv {Value = timeToSubdiv} );
 
@@ -97,7 +112,7 @@ namespace OneBitLab.FluidSim
                     createECB.SetComponent( entityInQueryIndex, rightEntity, waveOrigin );
                     createECB.SetComponent( entityInQueryIndex, rightEntity, new WaveDir {Value      = rightWaveDir} );
                     createECB.SetComponent( entityInQueryIndex, rightEntity, new WaveHeight {Value   = newHeight} );
-                    createECB.SetComponent( entityInQueryIndex, rightEntity, new WaveSpeed {Value    = cWPSpeed} );
+                    createECB.SetComponent( entityInQueryIndex, rightEntity, new WaveSpeed {Value    = waveSpeed.Value} );
                     createECB.SetComponent( entityInQueryIndex, rightEntity, new DispersAngle {Value = newAngle} );
                     createECB.SetComponent( entityInQueryIndex, rightEntity, new TimeToSubdiv {Value = timeToSubdiv} );
 

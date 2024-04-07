@@ -50,7 +50,8 @@ namespace OneBitLab.FluidSim
                                ref WaveDir       wDir,
                                ref DispersAngle  dispAngle,
                                ref TimeToSubdiv  tts,
-                               in  WavePos       wPos ) =>
+                               in  WavePos       wPos,
+                               in  WaveSpeed     waveSpeed ) =>
                              {
                                  ttr.Value -= dTime;
 
@@ -81,15 +82,15 @@ namespace OneBitLab.FluidSim
                                  {
                                      // No collision, so set TimeToReflect equivalent to traveling max ray distance
                                      // Debug.Log( "No Collision found"  );
-                                     ttr.Value = cRayDist / cWPSpeed;
+                                     ttr.Value = cRayDist / waveSpeed.Value;
                                      return;
                                  }
 
-                                 if( math.distance( hit.Position.xz, wPos.Value ) > 2.0 * dTime * cWPSpeed )
+                                 if( math.distance( hit.Position.xz, wPos.Value ) > 2.0 * dTime * waveSpeed.Value)
                                  {
                                      // We are not close to hit point, that means we are procession fresh reflection 
                                      // or newly spawned particle, so just update TimeToReflect and that's it
-                                     ttr.Value = math.distance( hit.Position.xz, wPos.Value ) / cWPSpeed;
+                                     ttr.Value = math.distance( hit.Position.xz, wPos.Value ) / waveSpeed.Value;
                                      return;
                                  }
 
@@ -102,7 +103,7 @@ namespace OneBitLab.FluidSim
 
                                  // Other value can be correctly calculated right now
                                  // rollback particle a bit to not overshoot the bounds
-                                 wOrigin.Value = hit.Position.xz - cWPSpeed * dTime * wDir.Value;
+                                 wOrigin.Value = hit.Position.xz - waveSpeed.Value * dTime * wDir.Value;
                                  wDir.Value    = math.reflect( wDir.Value, cNorm );
 
                                  // Calculate new dispersion angle
