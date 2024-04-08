@@ -45,7 +45,7 @@ namespace OneBitLab.FluidSim
             EntityArchetype                    archetype = m_WaveSpawnSystem.WaveArchetype;
 
             float       dTime        = Time.DeltaTime;
-            const float cWPRadius    = WaveSpawnSystem.c_WaveParticleRadius;
+            float cWPRadius    = WaveSpawnSystem.c_WaveParticleRadius.Data;
             const float cWPSpeed     = WaveSpawnSystem.c_WaveParticleSpeed;
             float       cWPMinHeight = WaveSpawnSystem.s_WaveParticleMinHeight;
 

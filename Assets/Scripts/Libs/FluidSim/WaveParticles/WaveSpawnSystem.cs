@@ -6,6 +6,7 @@ using Unity.Mathematics;
 using System;
 using UnityEngine;
 using Random = Unity.Mathematics.Random;
+using Unity.Burst;
 
 namespace OneBitLab.FluidSim
 {
@@ -13,13 +14,18 @@ namespace OneBitLab.FluidSim
     public class WaveSpawnSystem : SystemBase
     {
         //-------------------------------------------------------------
-        public const float c_WaveParticleRadius = 0.15f;
+        public static readonly SharedStatic<float> c_WaveParticleRadius = 
+            SharedStatic<float>.GetOrCreate<WaveSpawnSystem, FloatFieldKey>();
+
+        // Define a Key type to identify IntField
+        private class FloatFieldKey { }
+        //public static float c_WaveParticleRadius = 0.15f;
         public const float c_WaveParticleHeight = 0.05f;
         public const float c_WaveParticleSpeed  = 0.5f;
         public float m_windSpeed  = 0.5f;
         private const float gravity=9.8f;
 
-        private const int c_StartEntitiesCount = 1200;
+        private const int c_StartEntitiesCount = 800;
 
         public static float s_WaveParticleMinHeight = c_WaveParticleHeight;
 
@@ -70,11 +76,12 @@ namespace OneBitLab.FluidSim
             var entities = new NativeArray<Entity>( c_StartEntitiesCount, Allocator.Temp );
             EntityManager.CreateEntity( m_Archetype, entities );
 
-            float k = 5.0f;//先默认一个值
+            float k = 10.0f;//先默认一个值
             float kLength = math.max(0.001f, k);
             float speed = (float)Math.Sqrt(gravity/ kLength);
             float radius = (float)Math.PI/ kLength;
-            for( int i = 0; i < c_StartEntitiesCount; i++ )
+            c_WaveParticleRadius.Data = radius;
+            for ( int i = 0; i < c_StartEntitiesCount; i++ )
             {
                 float2 dir = math.normalizesafe(m_Rnd.NextFloat2( -1.0f, 1.0f ));
                 float height = 2 * (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k, dir) * 2);
@@ -148,7 +155,7 @@ namespace OneBitLab.FluidSim
                                      // Particle need to be subdivided when gap between two particles become visible
                                      // More details on Page 101: http://www.cemyuksel.com/research/waveparticles/cem_yuksel_dissertation.pdf
                                      float timeToSubdivide =
-                                         c_WaveParticleRadius /
+                                         c_WaveParticleRadius.Data /
                                          ( 2.0f * math.tan( dispersionAngle * 0.5f ) * c_WaveParticleSpeed );
 
                                      Entity entity = ecb.CreateEntity( archetype );

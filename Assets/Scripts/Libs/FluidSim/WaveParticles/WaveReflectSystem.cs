@@ -38,7 +38,7 @@ namespace OneBitLab.FluidSim
             float        dTime        = Time.DeltaTime;
             PhysicsWorld physicsWorld = m_BuildPhysicsWorld.PhysicsWorld;
 
-            const float cWPRadius = WaveSpawnSystem.c_WaveParticleRadius;
+            float cWPRadius = WaveSpawnSystem.c_WaveParticleRadius.Data;
             const float cWPSpeed  = WaveSpawnSystem.c_WaveParticleSpeed;
             const float cRayDist  = c_RayDistance;
 

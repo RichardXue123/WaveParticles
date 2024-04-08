@@ -30,7 +30,7 @@ namespace OneBitLab.FluidSim
                                               linear: true );//创建纹理
 
             m_FilterMat = new Material( Shader.Find( "FluidSim/WaveFilter_02" ) );
-            m_FilterMat.SetFloat( "_WaveParticleRadius", WaveSpawnSystem.c_WaveParticleRadius );
+            m_FilterMat.SetFloat( "_WaveParticleRadius", WaveSpawnSystem.c_WaveParticleRadius.Data );
         }
 
         //-------------------------------------------------------------
