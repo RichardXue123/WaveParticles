@@ -14,6 +14,12 @@ namespace OneBitLab.Services
         public float windSpeed;
         [SerializeField]
         public float Fetch;
+        [SerializeField]
+        [Tooltip("有义波高")]
+        public float Hs=3.0f;//有义波高，默认3m
+        [SerializeField]
+        [Tooltip("Peak Period")]
+        public float Tp = 10.0f;//Tp，默认10s
         const float G = 9.8f;
         const float A = 15.0f;//73
 
@@ -85,6 +91,27 @@ namespace OneBitLab.Services
             double DirSpectrum = MyGammaDouble(sw + 1) / (2 * Math.Sqrt(Math.PI) * MyGammaDouble(sw + 0.5)) * Math.Pow(Math.Cos(theta / 2), 2 * sw);
             //最后转换到sk
             double Sk = Sjw * DirSpectrum * 0.5 * Math.Sqrt(G / kLength);
+            return (float)Sk;
+        }
+        public float JONSWAPGlennSpectrum(float k, float2 dir)
+        {
+            float kLength = k;
+            double w = Math.Sqrt(G * kLength);
+            double f = w / (2 * Math.PI);//w=2paif
+            double fp = 1 / Tp;
+            double gamajg = 9.5 * Math.Pow(Hs, 0.34) * fp;
+            double sigma = f > fp ? 0.09 : 0.07;
+            double cc = (1.15 + 0.1688 * gamajg - (0.925) / (1.909 + gamajg));
+            double c = (5 * Hs * Hs) / (16 * fp) * Math.Pow(cc, -1);
+            double r = Math.Exp(-1 * (f - fp) * (f - fp) / (2 * sigma * sigma * fp * fp));
+            double Sjg = c * Math.Pow(f / fp, -5) * Math.Exp(-5 / 4 * Math.Pow(f / fp, -4)) * Math.Pow(gamajg, r);
+            //然后计算dir
+            double miu = f > fp ? -2.5 : 5.0;
+            double sw = 16 * Math.Pow(f / fp, miu);
+            double theta = Math.Atan2(dir.y, dir.x) - Math.Atan2(windDir.y, windDir.x);
+            double DirSpectrum = MyGammaDouble(sw + 1) / (2 * Math.Sqrt(Math.PI) * MyGammaDouble(sw + 0.5)) * Math.Pow(Math.Cos(theta / 2), 2 * sw);
+            //最后转换到sk
+            double Sk = Sjg * DirSpectrum / (4 * Math.PI) * Math.Sqrt(G / kLength);
             return (float)Sk;
         }
         //-------------------------------------------------------------
