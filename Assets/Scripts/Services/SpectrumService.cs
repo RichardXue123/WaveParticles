@@ -90,7 +90,7 @@ namespace OneBitLab.Services
             double theta = Math.Atan2(dir.y, dir.x) - Math.Atan2(windDir.y, windDir.x);
             double DirSpectrum = MyGammaDouble(sw + 1) / (2 * Math.Sqrt(Math.PI) * MyGammaDouble(sw + 0.5)) * Math.Pow(Math.Cos(theta / 2), 2 * sw);
             //最后转换到sk
-            double Sk = Sjw * DirSpectrum * 0.5 * Math.Sqrt(G / kLength);
+            double Sk = Sjw * DirSpectrum * 0.5 * Math.Sqrt(G / kLength) / kLength;
             return (float)Sk;
         }
         public float JONSWAPGlennSpectrum(float k, float2 dir)
@@ -111,7 +111,7 @@ namespace OneBitLab.Services
             double theta = Math.Atan2(dir.y, dir.x) - Math.Atan2(windDir.y, windDir.x);
             double DirSpectrum = MyGammaDouble(sw + 1) / (2 * Math.Sqrt(Math.PI) * MyGammaDouble(sw + 0.5)) * Math.Pow(Math.Cos(theta / 2), 2 * sw);
             //最后转换到sk
-            double Sk = Sjg * DirSpectrum / (4 * Math.PI) * Math.Sqrt(G / kLength);
+            double Sk = Sjg * DirSpectrum / (4 * Math.PI) * Math.Sqrt(G / kLength)/kLength;
             return (float)Sk;
         }
         //-------------------------------------------------------------

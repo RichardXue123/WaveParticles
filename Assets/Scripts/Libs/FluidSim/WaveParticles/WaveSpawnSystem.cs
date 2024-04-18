@@ -84,7 +84,7 @@ namespace OneBitLab.FluidSim
             for ( int i = 0; i < c_StartEntitiesCount; i++ )
             {
                 float2 dir = math.normalizesafe(m_Rnd.NextFloat2( -1.0f, 1.0f ));
-                float height = 2 * (float)Math.Sqrt(SpectrumService.Instance.JONSWAPGlennSpectrum(k, dir) * 2);
+                float height = 2 * (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k, dir) * 2);
                 Debug.Log("height"+height);
                 EntityManager.SetComponentData( entities[ i ], new WavePos {Value = m_Rnd.NextFloat2( -5.0f, 5.0f )} );
                 EntityManager.SetComponentData( entities[ i ], new WaveHeight {Value = height} );
