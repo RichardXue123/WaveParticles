@@ -12,9 +12,12 @@ namespace OneBitLab.FluidSim
         //-------------------------------------------------------------
         private RenderTexture m_HeightFieldRT;
         private RenderTexture m_TmpHeightFieldRT;
+        private RenderTexture m_TmpHeightFieldRT2;
         private Texture2D     m_HeightFieldTex;
         private Material      m_FilterMat;
-
+        private Material      m_AddMat;
+        private Texture2D     texture2D;
+        private RenderTexture myRT;
         //-------------------------------------------------------------
         protected override void OnStartRunning()
         {
@@ -22,7 +25,8 @@ namespace OneBitLab.FluidSim
 
             m_HeightFieldRT    = ResourceLocatorService.Instance.m_HeightFieldRT;
             m_TmpHeightFieldRT = new RenderTexture( m_HeightFieldRT );
-
+            m_TmpHeightFieldRT2 = new RenderTexture( m_HeightFieldRT );
+            m_TmpHeightFieldRT2.enableRandomWrite = true;
             m_HeightFieldTex = new Texture2D( m_HeightFieldRT.width,
                                               m_HeightFieldRT.height,
                                               TextureFormat.RFloat,
@@ -31,6 +35,10 @@ namespace OneBitLab.FluidSim
 
             m_FilterMat = new Material( Shader.Find( "FluidSim/WaveFilter_02" ) );
             m_FilterMat.SetFloat( "_WaveParticleRadius", WaveSpawnSystem.c_WaveParticleRadius.Data );
+            
+            texture2D = new Texture2D(m_HeightFieldRT.width, m_HeightFieldRT.height, TextureFormat.RGBAFloat, false);
+            // myRT= new RenderTexture(m_HeightFieldRT.width, m_HeightFieldRT.height, 0);
+            m_AddMat =new Material( Shader.Find( "FluidSim/s_AddFilter" ) );
         }
 
         //-------------------------------------------------------------
@@ -101,8 +109,40 @@ namespace OneBitLab.FluidSim
 
             // Horizontal filter pass
             Graphics.Blit( m_HeightFieldTex, m_TmpHeightFieldRT, m_FilterMat, pass: 0 );
-            Graphics.Blit( m_TmpHeightFieldRT, m_HeightFieldRT, m_FilterMat, pass: 1 ); 
-            // Graphics.Blit( m_HeightFieldTex, m_HeightFieldRT );
+            // Graphics.Blit( m_TmpHeightFieldRT, m_HeightFieldRT, m_FilterMat, pass: 1 ); 
+            // Graphics.Blit( m_HeightFieldTex, m_HeightFieldRT, m_FilterMat, pass: 1);
+            Graphics.Blit( m_TmpHeightFieldRT, m_TmpHeightFieldRT2, m_FilterMat, pass: 1 ); 
+
+            
+            
+            // myRT.Create();
+            // texture2D.Apply();
+            // Graphics.ConvertTexture(m_TmpHeightFieldRT2, texture2D);
+            //
+            // RenderTexture.active = m_HeightFieldRT;
+            // texture2D.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+            // texture2D.Apply();
+            // NativeArray<float4> pixData1 = texture2D.GetRawTextureData<float4>();
+            // Debug.Log("pixData1[ i ] before:"+pixData1[ 100 ]);
+            // Job
+            //     .WithCode( () =>
+            //     {
+            //         for( int i = 0; i < pixData1.Length; i++ )
+            //         {
+            //             // pixData1[ i ] = pixData1[ i ] + new float4(pixData1[i].x,pixData1[i].y,pixData1[i].z,0);
+
+            //         }
+            //     } )
+            //     .Schedule();
+            // Dependency.Complete();
+            // JobHandle.Complete();
+            // texture2D.Apply();
+            // Debug.Log("pixData1[ i ]:"+pixData1[ 100 ]);
+            
+            // Graphics.Blit (texture2D, m_HeightFieldRT);
+            m_AddMat.SetTexture( "_MainTex2", m_TmpHeightFieldRT2);
+            Graphics.Blit (m_TmpHeightFieldRT2, m_HeightFieldRT,m_AddMat,pass:0);
+            // Graphics.Blit (m_TmpHeightFieldRT2, m_HeightFieldRT);
         }
 
         //-------------------------------------------------------------

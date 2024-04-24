@@ -1010,6 +1010,8 @@ MonoBehaviour:
     y: 0
   windSpeed: 50
   Fetch: 50000
+  Hs: 3
+  Tp: 10
 --- !u!4 &482783143
 Transform:
   m_ObjectHideFlags: 0

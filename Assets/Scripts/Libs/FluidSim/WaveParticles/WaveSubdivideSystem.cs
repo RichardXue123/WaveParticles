@@ -1,4 +1,5 @@
-﻿using Unity.Entities;
+﻿using System;
+using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -67,8 +68,8 @@ namespace OneBitLab.FluidSim
                         // Particle is not ready for subdivision
                         return;
                     }
-
-                    if( height.Value < cWPMinHeight )
+                    
+                    if(math.abs(height.Value) < cWPMinHeight )
                     {
                         // Particle reached min height, schedule it for deletion 高度过小就剔除掉
                         deleteECB.DestroyEntity( entityInQueryIndex, entity );
