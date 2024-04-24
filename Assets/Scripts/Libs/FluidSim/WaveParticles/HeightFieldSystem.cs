@@ -13,7 +13,9 @@ namespace OneBitLab.FluidSim
         private RenderTexture m_HeightFieldRT;
         private RenderTexture m_TmpHeightFieldRT;
         private RenderTexture m_TmpHeightFieldRT2;
+        private RenderTexture m_TmpHeightFieldRT3;
         private Texture2D     m_HeightFieldTex;
+        private Texture2D     m_HeightFieldTex1;
         private Material      m_FilterMat;
         private Material      m_AddMat;
         private Texture2D     texture2D;
@@ -27,12 +29,18 @@ namespace OneBitLab.FluidSim
             m_TmpHeightFieldRT = new RenderTexture( m_HeightFieldRT );
             m_TmpHeightFieldRT2 = new RenderTexture( m_HeightFieldRT );
             m_TmpHeightFieldRT2.enableRandomWrite = true;
+            m_TmpHeightFieldRT3 = new RenderTexture( m_HeightFieldRT );
+            m_TmpHeightFieldRT3.enableRandomWrite = true;
             m_HeightFieldTex = new Texture2D( m_HeightFieldRT.width,
                                               m_HeightFieldRT.height,
                                               TextureFormat.RFloat,
                                               mipChain: false,
                                               linear: true );//创建纹理
-
+            m_HeightFieldTex1 = new Texture2D( m_HeightFieldRT.width,
+                                              m_HeightFieldRT.height,
+                                              TextureFormat.RFloat,
+                                              mipChain: false,
+                                              linear: true );
             m_FilterMat = new Material( Shader.Find( "FluidSim/WaveFilter_02" ) );
             m_FilterMat.SetFloat( "_WaveParticleRadius", WaveSpawnSystem.c_WaveParticleRadius.Data );
             
@@ -45,6 +53,7 @@ namespace OneBitLab.FluidSim
         protected override void OnUpdate()
         {
             NativeArray<float> pixData = m_HeightFieldTex.GetRawTextureData<float>();
+            NativeArray<float> pixData1 = m_HeightFieldTex1.GetRawTextureData<float>();
 
             // Clear texture color to black//初始化为0，每个时刻一开始都要初始化成0
             Job
@@ -53,6 +62,7 @@ namespace OneBitLab.FluidSim
                     for( int i = 0; i < pixData.Length; i++ )
                     {
                         pixData[ i ] = 0;
+                        pixData1[ i ] = 0;
                     }
                 } )
                 .Schedule();
@@ -66,7 +76,7 @@ namespace OneBitLab.FluidSim
             // Project all wave particles to texture
             // TODO: split in two jobs, first to create list of all modification (can be parallel)
             Entities
-                .ForEach( ( in WavePos wPos, in WaveHeight height ) =>
+                .ForEach( ( in WavePos wPos, in WaveHeight height, in Radius radius) =>
                 {
                     // Filter all particles which are beyond the border
                     // Also filter particles in the first and last raws of hegihtmap, 
@@ -96,53 +106,43 @@ namespace OneBitLab.FluidSim
 
                     //pixData[ x0y0 ] = ( byte )( pixData[ x0y0 ] + height.Value);
                     // Do manual anti-aliasing for the 2x2 pixel square
-                    pixData[ x0y0 ] = pixData[ x0y0 ] + height.Value * ( 1.0f - dX ) * ( 1.0f - dY );
-                    pixData[ x1y0 ] = pixData[ x1y0 ] + height.Value * dX            * ( 1.0f - dY );
-                    pixData[ x0y1 ] = pixData[ x0y1 ] + height.Value * ( 1.0f - dX ) * dY;
-                    pixData[ x1y1 ] = pixData[ x1y1 ] + height.Value * dX            * dY;
+                    if(radius.Value>0.1f)
+                    {
+                        pixData1[ x0y0 ] = pixData1[ x0y0 ] + height.Value * ( 1.0f - dX ) * ( 1.0f - dY );
+                        pixData1[ x1y0 ] = pixData1[ x1y0 ] + height.Value * dX            * ( 1.0f - dY );
+                        pixData1[ x0y1 ] = pixData1[ x0y1 ] + height.Value * ( 1.0f - dX ) * dY;
+                        pixData1[ x1y1 ] = pixData1[ x1y1 ] + height.Value * dX            * dY;
+                    }
+                    else{
+                        pixData[ x0y0 ] = pixData[ x0y0 ] + height.Value * ( 1.0f - dX ) * ( 1.0f - dY );
+                        pixData[ x1y0 ] = pixData[ x1y0 ] + height.Value * dX            * ( 1.0f - dY );
+                        pixData[ x0y1 ] = pixData[ x0y1 ] + height.Value * ( 1.0f - dX ) * dY;
+                        pixData[ x1y1 ] = pixData[ x1y1 ] + height.Value * dX            * dY;
+                    }
+                    
                 } )
                 .Schedule();
 
             // We have to wait for all jobs before applying changes to the texture
             Dependency.Complete();
             m_HeightFieldTex.Apply();
+            m_HeightFieldTex1.Apply();
 
             // Horizontal filter pass
+            m_FilterMat.SetFloat( "_WaveParticleRadius", 0.15f );
             Graphics.Blit( m_HeightFieldTex, m_TmpHeightFieldRT, m_FilterMat, pass: 0 );
             // Graphics.Blit( m_TmpHeightFieldRT, m_HeightFieldRT, m_FilterMat, pass: 1 ); 
             // Graphics.Blit( m_HeightFieldTex, m_HeightFieldRT, m_FilterMat, pass: 1);
             Graphics.Blit( m_TmpHeightFieldRT, m_TmpHeightFieldRT2, m_FilterMat, pass: 1 ); 
-
             
-            
-            // myRT.Create();
-            // texture2D.Apply();
-            // Graphics.ConvertTexture(m_TmpHeightFieldRT2, texture2D);
-            //
-            // RenderTexture.active = m_HeightFieldRT;
-            // texture2D.ReadPixels(new Rect(0, 0, w, h), 0, 0);
-            // texture2D.Apply();
-            // NativeArray<float4> pixData1 = texture2D.GetRawTextureData<float4>();
-            // Debug.Log("pixData1[ i ] before:"+pixData1[ 100 ]);
-            // Job
-            //     .WithCode( () =>
-            //     {
-            //         for( int i = 0; i < pixData1.Length; i++ )
-            //         {
-            //             // pixData1[ i ] = pixData1[ i ] + new float4(pixData1[i].x,pixData1[i].y,pixData1[i].z,0);
-
-            //         }
-            //     } )
-            //     .Schedule();
-            // Dependency.Complete();
-            // JobHandle.Complete();
-            // texture2D.Apply();
-            // Debug.Log("pixData1[ i ]:"+pixData1[ 100 ]);
-            
+            m_FilterMat.SetFloat( "_WaveParticleRadius", 0.25f );
+            Graphics.Blit( m_HeightFieldTex1, m_TmpHeightFieldRT, m_FilterMat, pass: 0 );
+            Graphics.Blit( m_TmpHeightFieldRT, m_TmpHeightFieldRT3, m_FilterMat, pass: 1 ); 
             // Graphics.Blit (texture2D, m_HeightFieldRT);
-            m_AddMat.SetTexture( "_MainTex2", m_TmpHeightFieldRT2);
+            m_AddMat.SetTexture( "_MainTex2", m_TmpHeightFieldRT3);
             Graphics.Blit (m_TmpHeightFieldRT2, m_HeightFieldRT,m_AddMat,pass:0);
-            // Graphics.Blit (m_TmpHeightFieldRT2, m_HeightFieldRT);
+            
+            // Graphics.Blit (m_TmpHeightFieldRT3, m_HeightFieldRT);
         }
 
         //-------------------------------------------------------------
