@@ -109,16 +109,82 @@ namespace OneBitLab.FluidSim
 
             //两个循环，摆放粒子
             float border = 5.0f;//那个plane的大小是这么大
-            Entity entity = EntityManager.CreateEntity( m_Archetype );
-            float Height = 0.3f;
-            //有些属性，比如waveDir，是固定的，就可以不用每次都new？
-            float2 wavepos = m_Rnd.NextFloat2( -5.0f, 5.0f );
-            EntityManager.SetComponentData( entity, new WavePos {Value    = wavepos} );
-            EntityManager.SetComponentData( entity, new WaveHeight {Value = Height} );
-            EntityManager.SetComponentData( entity, new WaveSpeed {Value = speed} );
-            EntityManager.SetComponentData( entity, new WaveDir { Value = dir } );
-            EntityManager.SetComponentData( entity, new WaveVector { Value = k } );
-            EntityManager.SetComponentData( entity, new Radius { Value = radius } );
+            for(int i=0;i<200;i++)
+            {
+                Entity entity = EntityManager.CreateEntity( m_Archetype );
+                Entity entity2 = EntityManager.CreateEntity( m_Archetype );
+                float Height = 0.3f;
+                //有些属性，比如waveDir，是固定的，就可以不用每次都new？
+                // float2 wavepos = m_Rnd.NextFloat2( -5.0f, 5.0f );
+                float2 wavepos = new float2((2*i+1) * radius * dir.x,(2*i+1) * radius * dir.y);//已经正则化成单位向量了
+                if(math.abs(wavepos.x)>border+radius/2||math.abs(wavepos.y)>border+radius/2)
+                {
+                    break;
+                }
+                EntityManager.SetComponentData( entity, new WavePos {Value    = wavepos} );
+                EntityManager.SetComponentData( entity, new WaveHeight {Value = Height} );
+                EntityManager.SetComponentData( entity, new WaveSpeed {Value = speed} );
+                EntityManager.SetComponentData( entity, new WaveDir { Value = dir } );
+                EntityManager.SetComponentData( entity, new WaveVector { Value = k } );
+                EntityManager.SetComponentData( entity, new Radius { Value = radius } );
+
+                float2 wavepos2=-wavepos;
+                EntityManager.SetComponentData( entity2, new WavePos {Value    = wavepos2} );
+                EntityManager.SetComponentData( entity2, new WaveHeight {Value = Height} );
+                EntityManager.SetComponentData( entity2, new WaveSpeed {Value = speed} );
+                EntityManager.SetComponentData( entity2, new WaveDir { Value = dir } );
+                EntityManager.SetComponentData( entity2, new WaveVector { Value = k } );
+                EntityManager.SetComponentData( entity2, new Radius { Value = radius } );
+                //垂直dir方向的，每差一个radius
+                for(int j=1;j<300;j++)
+                {
+                    Entity entity3 = EntityManager.CreateEntity( m_Archetype );
+                    Entity entity4 = EntityManager.CreateEntity( m_Archetype );
+                    float2 wavepos3 = new float2(wavepos2.x + radius * j * dir.y,wavepos2.y - radius * j * dir.x);
+                    float2 wavepos4 = new float2(wavepos2.x - radius * j * dir.y,wavepos2.y + radius * j * dir.x);
+                    if(math.abs(wavepos3.x)<border&&math.abs(wavepos3.y)<border)
+                    {
+                        EntityManager.SetComponentData( entity3, new WavePos {Value    = wavepos3} );
+                        EntityManager.SetComponentData( entity3, new WaveHeight {Value = Height} );
+                        EntityManager.SetComponentData( entity3, new WaveSpeed {Value = speed} );
+                        EntityManager.SetComponentData( entity3, new WaveDir { Value = dir } );
+                        EntityManager.SetComponentData( entity3, new WaveVector { Value = k } );
+                        EntityManager.SetComponentData( entity3, new Radius { Value = radius } );
+                    }
+                    if(math.abs(wavepos4.x)<border&&math.abs(wavepos4.y)<border)
+                    {
+                        EntityManager.SetComponentData( entity4, new WavePos {Value    = wavepos4} );
+                        EntityManager.SetComponentData( entity4, new WaveHeight {Value = Height} );
+                        EntityManager.SetComponentData( entity4, new WaveSpeed {Value = speed} );
+                        EntityManager.SetComponentData( entity4, new WaveDir { Value = dir } );
+                        EntityManager.SetComponentData( entity4, new WaveVector { Value = k } );
+                        EntityManager.SetComponentData( entity4, new Radius { Value = radius } );
+                    }
+                    Entity entity5 = EntityManager.CreateEntity( m_Archetype );
+                    Entity entity6 = EntityManager.CreateEntity( m_Archetype );
+                    float2 wavepos5 = new float2(wavepos.x + radius * j * dir.y,wavepos.y - radius * j * dir.x);
+                    float2 wavepos6 = new float2(wavepos.x - radius * j * dir.y,wavepos.y + radius * j * dir.x);
+                    if(math.abs(wavepos5.x)<border&&math.abs(wavepos5.y)<border)
+                    {
+                        EntityManager.SetComponentData( entity5, new WavePos {Value    = wavepos5} );
+                        EntityManager.SetComponentData( entity5, new WaveHeight {Value = Height} );
+                        EntityManager.SetComponentData( entity5, new WaveSpeed {Value = speed} );
+                        EntityManager.SetComponentData( entity5, new WaveDir { Value = dir } );
+                        EntityManager.SetComponentData( entity5, new WaveVector { Value = k } );
+                        EntityManager.SetComponentData( entity5, new Radius { Value = radius } );
+                    }
+                    if(math.abs(wavepos6.x)<border&&math.abs(wavepos6.y)<border)
+                    {
+                        EntityManager.SetComponentData( entity6, new WavePos {Value    = wavepos6} );
+                        EntityManager.SetComponentData( entity6, new WaveHeight {Value = Height} );
+                        EntityManager.SetComponentData( entity6, new WaveSpeed {Value = speed} );
+                        EntityManager.SetComponentData( entity6, new WaveDir { Value = dir } );
+                        EntityManager.SetComponentData( entity6, new WaveVector { Value = k } );
+                        EntityManager.SetComponentData( entity6, new Radius { Value = radius } );
+                    }
+                }
+            }
+            
 
             m_AllEntitiesQuery = GetEntityQuery( ComponentType.ReadOnly<WaveHeight>() );
             Debug.Log("particle count:"+m_AllEntitiesQuery.CalculateEntityCountWithoutFiltering());

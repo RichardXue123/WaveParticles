@@ -68,6 +68,11 @@ namespace OneBitLab.FluidSim
                         // Particle is not ready for subdivision
                         return;
                     }
+                    if(angle.Value<=0)
+                    {
+                        //初始生成的粒子不需要细分
+                        return;
+                    }
                     
                     if(math.abs(height.Value) < cWPMinHeight )
                     {
