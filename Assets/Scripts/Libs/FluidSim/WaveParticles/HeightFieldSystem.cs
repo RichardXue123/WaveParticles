@@ -106,7 +106,7 @@ namespace OneBitLab.FluidSim
 
                     //pixData[ x0y0 ] = ( byte )( pixData[ x0y0 ] + height.Value);
                     // Do manual anti-aliasing for the 2x2 pixel square
-                    if(radius.Value>0.1f)
+                    if(radius.Value>0.2f)
                     {
                         pixData1[ x0y0 ] = pixData1[ x0y0 ] + height.Value * ( 1.0f - dX ) * ( 1.0f - dY );
                         pixData1[ x1y0 ] = pixData1[ x1y0 ] + height.Value * dX            * ( 1.0f - dY );
@@ -132,7 +132,6 @@ namespace OneBitLab.FluidSim
             m_FilterMat.SetFloat( "_WaveParticleRadius", 0.15f );
             Graphics.Blit( m_HeightFieldTex, m_TmpHeightFieldRT, m_FilterMat, pass: 0 );
             // Graphics.Blit( m_TmpHeightFieldRT, m_HeightFieldRT, m_FilterMat, pass: 1 ); 
-            // Graphics.Blit( m_HeightFieldTex, m_HeightFieldRT, m_FilterMat, pass: 1);
             Graphics.Blit( m_TmpHeightFieldRT, m_TmpHeightFieldRT2, m_FilterMat, pass: 1 ); 
             
             m_FilterMat.SetFloat( "_WaveParticleRadius", 0.25f );
@@ -142,7 +141,7 @@ namespace OneBitLab.FluidSim
             m_AddMat.SetTexture( "_MainTex2", m_TmpHeightFieldRT3);
             Graphics.Blit (m_TmpHeightFieldRT2, m_HeightFieldRT,m_AddMat,pass:0);
             
-            // Graphics.Blit (m_TmpHeightFieldRT3, m_HeightFieldRT);
+            // Graphics.Blit (m_TmpHeightFieldRT3, m_HeightFieldRT); 
         }
 
         //-------------------------------------------------------------

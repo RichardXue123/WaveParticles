@@ -25,7 +25,7 @@ namespace OneBitLab.FluidSim
         public float m_windSpeed  = 0.5f;
         private const float gravity=9.8f;
 
-        private const int c_StartEntitiesCount = 300;
+        private const int c_StartEntitiesCount = 0;//300
 
         public static float s_WaveParticleMinHeight = c_WaveParticleHeight;
 
@@ -49,7 +49,7 @@ namespace OneBitLab.FluidSim
         private float                                  m_TimeToDrop = 1000000.0f;
         private Random                                 m_Rnd        = new Random( seed: 1234 );
         private EntityQuery                            m_AllEntitiesQuery;
-
+        
         //-------------------------------------------------------------
         public void AddExternalDependency( JobHandle newDependency )
         {
@@ -83,20 +83,21 @@ namespace OneBitLab.FluidSim
             float radius = (float)Math.PI/ kLength;
             radius = 0.15f;
             c_WaveParticleRadius.Data = radius;
+            float2 dir = math.normalizesafe(m_Rnd.NextFloat2( -1.0f, 1.0f ));
             for ( int i = 0; i < c_StartEntitiesCount; i++ )
             {
-                float2 dir = math.normalizesafe(m_Rnd.NextFloat2( -1.0f, 1.0f ));
+                // float2 dir = math.normalizesafe(m_Rnd.NextFloat2( -1.0f, 1.0f ));
                 float height = 2 * (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k, dir) * 2);
                 // height = -0.05f;
                 height = 0.3f;
-                if(m_Rnd.NextBool())
-                {
-                    radius = 0.15f;
-                }
-                else{
-                    radius= 0.25f;
-                }
-                Debug.Log("height"+height);
+                // if(m_Rnd.NextBool())
+                // {
+                //     radius = 0.15f;
+                // }
+                // else{
+                //     radius= 0.25f;
+                // }
+                // Debug.Log("height"+height);
                 EntityManager.SetComponentData( entities[ i ], new WavePos {Value = m_Rnd.NextFloat2( -5.0f, 5.0f )} );
                 EntityManager.SetComponentData( entities[ i ], new WaveHeight {Value = height} );
                 EntityManager.SetComponentData( entities[ i ], new WaveSpeed {Value = speed} );
@@ -104,10 +105,23 @@ namespace OneBitLab.FluidSim
                 EntityManager.SetComponentData( entities[ i ], new WaveVector { Value = k } );
                 EntityManager.SetComponentData( entities[ i ], new Radius { Value = radius } );
             }
-
             entities.Dispose();
 
+            //两个循环，摆放粒子
+            float border = 5.0f;//那个plane的大小是这么大
+            Entity entity = EntityManager.CreateEntity( m_Archetype );
+            float Height = 0.3f;
+            //有些属性，比如waveDir，是固定的，就可以不用每次都new？
+            float2 wavepos = m_Rnd.NextFloat2( -5.0f, 5.0f );
+            EntityManager.SetComponentData( entity, new WavePos {Value    = wavepos} );
+            EntityManager.SetComponentData( entity, new WaveHeight {Value = Height} );
+            EntityManager.SetComponentData( entity, new WaveSpeed {Value = speed} );
+            EntityManager.SetComponentData( entity, new WaveDir { Value = dir } );
+            EntityManager.SetComponentData( entity, new WaveVector { Value = k } );
+            EntityManager.SetComponentData( entity, new Radius { Value = radius } );
+
             m_AllEntitiesQuery = GetEntityQuery( ComponentType.ReadOnly<WaveHeight>() );
+            Debug.Log("particle count:"+m_AllEntitiesQuery.CalculateEntityCountWithoutFiltering());
         }
 
         //-------------------------------------------------------------
