@@ -4,6 +4,7 @@
     {
         _MainTex ("Texture", 2D) = "white" {}
         _WaveParticleRadius ("Wave Particle Radius", Float) = 0.15
+        _DeltaScale ("Vertical Filter Scale", Float) = 0.1
     }
 
     CGINCLUDE
@@ -24,6 +25,7 @@
         sampler2D _MainTex;
         float4 _MainTex_ST;
         uniform float _WaveParticleRadius;
+        uniform float _DeltaScale;
 
         v2f vert(appdata v)
         {
@@ -80,7 +82,7 @@
             }
             
             // Scale XY offset of the wave
-            div.xz *= 0.1f;
+            div.xz *= _DeltaScale;
             
             return div;
         }

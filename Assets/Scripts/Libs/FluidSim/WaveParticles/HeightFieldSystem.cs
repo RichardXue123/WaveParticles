@@ -130,6 +130,7 @@ namespace OneBitLab.FluidSim
 
             // Horizontal filter pass
             m_FilterMat.SetFloat( "_WaveParticleRadius", 0.15f );
+            m_FilterMat.SetFloat( "_DeltaScale", 0.3f );
             Graphics.Blit( m_HeightFieldTex, m_TmpHeightFieldRT, m_FilterMat, pass: 0 );
             // Graphics.Blit( m_TmpHeightFieldRT, m_HeightFieldRT, m_FilterMat, pass: 1 ); 
             Graphics.Blit( m_TmpHeightFieldRT, m_TmpHeightFieldRT2, m_FilterMat, pass: 1 ); 
