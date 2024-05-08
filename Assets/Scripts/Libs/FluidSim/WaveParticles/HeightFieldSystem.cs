@@ -3,6 +3,8 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
+using System;
+using System.Collections.Generic;
 
 namespace OneBitLab.FluidSim
 {
@@ -14,8 +16,14 @@ namespace OneBitLab.FluidSim
         private RenderTexture m_TmpHeightFieldRT;
         private RenderTexture m_TmpHeightFieldRT2;
         private RenderTexture m_TmpHeightFieldRT3;
+        private RenderTexture m_TmpHeightFieldRT4;
         private Texture2D     m_HeightFieldTex;
         private Texture2D     m_HeightFieldTex1;
+        // private NativeArray<Texture2D> m_HeightFieldTexes;
+        private Texture2D[] m_HeightFieldTexes;
+        private float L;
+        private int sample_count;
+        private float sample_interval;
         private Material      m_FilterMat;
         private Material      m_AddMat;
         private Texture2D     texture2D;
@@ -31,6 +39,8 @@ namespace OneBitLab.FluidSim
             m_TmpHeightFieldRT2.enableRandomWrite = true;
             m_TmpHeightFieldRT3 = new RenderTexture( m_HeightFieldRT );
             m_TmpHeightFieldRT3.enableRandomWrite = true;
+            m_TmpHeightFieldRT4 = new RenderTexture( m_HeightFieldRT );
+            m_TmpHeightFieldRT4.enableRandomWrite = true;
             m_HeightFieldTex = new Texture2D( m_HeightFieldRT.width,
                                               m_HeightFieldRT.height,
                                               TextureFormat.RFloat,
@@ -41,8 +51,22 @@ namespace OneBitLab.FluidSim
                                               TextureFormat.RFloat,
                                               mipChain: false,
                                               linear: true );
+            L = 1.0f;
+            sample_count = 10;
+            sample_interval = L / sample_count;
+            // m_HeightFieldTexes= new NativeArray<Texture2D>( sample_count, Allocator.Temp );
+            m_HeightFieldTexes = new Texture2D[sample_count];
+            for(int i=0;i<sample_count;i++)
+            {
+                m_HeightFieldTexes[i]= new Texture2D( m_HeightFieldRT.width,
+                                              m_HeightFieldRT.height,
+                                              TextureFormat.RFloat,
+                                              mipChain: false,
+                                              linear: true );
+            }//创建纹理
+            
             m_FilterMat = new Material( Shader.Find( "FluidSim/WaveFilter_02" ) );
-            m_FilterMat.SetFloat( "_WaveParticleRadius", WaveSpawnSystem.c_WaveParticleRadius.Data );
+            // m_FilterMat.SetFloat( "_WaveParticleRadius", WaveSpawnSystem.c_WaveParticleRadius.Data );
             
             texture2D = new Texture2D(m_HeightFieldRT.width, m_HeightFieldRT.height, TextureFormat.RGBAFloat, false);
             // myRT= new RenderTexture(m_HeightFieldRT.width, m_HeightFieldRT.height, 0);
@@ -52,9 +76,33 @@ namespace OneBitLab.FluidSim
         //-------------------------------------------------------------
         protected override void OnUpdate()
         {
+            
             NativeArray<float> pixData = m_HeightFieldTex.GetRawTextureData<float>();
             NativeArray<float> pixData1 = m_HeightFieldTex1.GetRawTextureData<float>();
-
+            int pLength=pixData.Length;
+            // NativeArray<float> pixDatas= new NativeArray<float>(pLength*sample_count, Allocator.TempJob);//
+            Dictionary<int,NativeArray<float>> pixDatas2=new Dictionary<int,NativeArray<float>>();
+            for(int i=0;i<sample_count;i++)
+            {
+                NativeArray<float> TmpPixData = new NativeArray<float>(pLength,Allocator.Temp);
+                TmpPixData = m_HeightFieldTexes[i].GetRawTextureData<float>();
+                // for (int j = 0; j < pLength; ++j)
+                // {
+                //     // i * lenght gives the offset of each array because they are the same lenght
+                //     pixDatas[i * pLength + j] = TmpPixData[j];
+                // }
+                if(pixDatas2.ContainsKey(i))
+                {
+                    pixDatas2[i] = TmpPixData;
+                }
+                else{
+                    pixDatas2.Add(i,TmpPixData);
+                }
+                // pixDatas[i*pLength]= m_HeightFieldTexes[i].GetRawTextureData<float>();
+                
+            }
+            int Asample_count=sample_count;
+            float Asample_interval=sample_interval;
             // Clear texture color to black//初始化为0，每个时刻一开始都要初始化成0
             Job
                 .WithCode( () =>
@@ -64,9 +112,32 @@ namespace OneBitLab.FluidSim
                         pixData[ i ] = 0;
                         pixData1[ i ] = 0;
                     }
+                    for(int i=0;i<Asample_count;i++)
+                    {
+                        NativeArray<float> TmpPixData=pixDatas2[i];
+                        // int length=TmpPixData.Length;
+                        for( int j = 0; j < pLength; j++ )
+                        {
+                            TmpPixData[ j ] = 0;
+                            // pixDatas[i * pLength + j] = 0;
+                            // pixDatas2[i][j]=0;
+                        }
+                        // pixDatas2[i]=TmpPixData;
+                        // Debug.Log("i:"+i+pixDatas2[i][i]);//设0没问题
+                        // pixDatas2[i] = pixData;
+                    }
                 } )
-                .Schedule();
-
+                // .Schedule();
+                .WithoutBurst()
+                .Run();
+            // for(int i=0;i<Asample_count;i++)
+            // {
+            //     pixDatas2[i] = pixData;
+            //     Debug.Log("i:"+i+pixDatas2[i][i]);
+            // }
+            NativeArray<float> before = new NativeArray<float>(pLength,Allocator.Temp);;
+            before.CopyFrom(pixDatas2[0]);
+            // Debug.Log(before[0]);
             // Bake data we want to capture in the job
             int   w      = m_HeightFieldRT.width;
             int   h      = m_HeightFieldRT.height;
@@ -119,14 +190,45 @@ namespace OneBitLab.FluidSim
                         pixData[ x0y1 ] = pixData[ x0y1 ] + height.Value * ( 1.0f - dX ) * dY;
                         pixData[ x1y1 ] = pixData[ x1y1 ] + height.Value * dX            * dY;
                     }
-                    
+                    int index=(int)(radius.Value/Asample_interval);
+                    if(index >= Asample_count)
+                    {
+                        index = Asample_count-1;
+                    }
+                    // Debug.Log(index);
+                    NativeArray<float> TmpPixData = pixDatas2[index];
+                    float before1 = TmpPixData[x0y0];
+                    // NativeArray<float> TmpPixData = m_HeightFieldTexes[index].GetRawTextureData<float>();
+                    // pixDatas[index*pLength + x0y0 ] = pixDatas[index*pLength + x0y0 ] + height.Value * ( 1.0f - dX ) * ( 1.0f - dY );
+                    // pixDatas[index*pLength + x1y0 ] = pixDatas[index*pLength + x1y0 ] + height.Value * dX            * ( 1.0f - dY );
+                    // pixDatas[index*pLength + x0y1 ] = pixDatas[index*pLength + x0y1 ] + height.Value * ( 1.0f - dX ) * dY;
+                    // pixDatas[index*pLength + x1y1 ] = pixDatas[index*pLength + x1y1 ] + height.Value * dX            * dY;
+                    TmpPixData[ x0y0 ] = TmpPixData[ x0y0 ] + height.Value * ( 1.0f - dX ) * ( 1.0f - dY );
+                    TmpPixData[ x1y0 ] = TmpPixData[ x1y0 ] + height.Value * dX            * ( 1.0f - dY );
+                    TmpPixData[ x0y1 ] = TmpPixData[ x0y1 ] + height.Value * ( 1.0f - dX ) * dY;
+                    TmpPixData[ x1y1 ] = TmpPixData[ x1y1 ] + height.Value * dX            * dY;
+                    // m_HeightFieldTexes[index].Apply();//改一次提交一次？肯定不行
+                    // pixDatas2[index] = TmpPixData;
+                    // Debug.Log(before1==pixDatas2[index][ x0y0 ]);
+                    // TmpPixData.Dispose();
                 } )
-                .Schedule();
+                .WithoutBurst()
+                .Run();
 
             // We have to wait for all jobs before applying changes to the texture
             Dependency.Complete();
             m_HeightFieldTex.Apply();
             m_HeightFieldTex1.Apply();
+            for(int i=0;i<sample_count;i++)
+            {
+                // NativeArray<float> TmpPixData = m_HeightFieldTexes[i].GetRawTextureData<float>();
+                // TmpPixData = pixDatas2[i];
+                // Debug.Log("i"+i+TmpPixData.Equals(pixDatas2[i]));
+                m_HeightFieldTexes[i].Apply();
+                // TmpPixData = m_HeightFieldTexes[i].GetRawTextureData<float>();
+                // Debug.Log("i"+i+TmpPixData.Equals(pixDatas2[i]));//apply之前一样，之后不一样
+            }
+            // Debug.Log(before.Equals(pixDatas2[0]));
 
             // Horizontal filter pass
             m_FilterMat.SetFloat( "_WaveParticleRadius", 0.15f );
@@ -134,15 +236,43 @@ namespace OneBitLab.FluidSim
             Graphics.Blit( m_HeightFieldTex, m_TmpHeightFieldRT, m_FilterMat, pass: 0 );
             // Graphics.Blit( m_TmpHeightFieldRT, m_HeightFieldRT, m_FilterMat, pass: 1 ); 
             Graphics.Blit( m_TmpHeightFieldRT, m_TmpHeightFieldRT2, m_FilterMat, pass: 1 ); 
+            //试一下能不能把2变成RT，然后直接修改到RT 看起来好像不行
+            // Graphics.Blit( m_TmpHeightFieldRT, m_HeightFieldRT, m_FilterMat, pass: 1 );
             
             m_FilterMat.SetFloat( "_WaveParticleRadius", 0.25f );
             Graphics.Blit( m_HeightFieldTex1, m_TmpHeightFieldRT, m_FilterMat, pass: 0 );
             Graphics.Blit( m_TmpHeightFieldRT, m_TmpHeightFieldRT3, m_FilterMat, pass: 1 ); 
+            
             // Graphics.Blit (texture2D, m_HeightFieldRT);
             m_AddMat.SetTexture( "_MainTex2", m_TmpHeightFieldRT3);
             Graphics.Blit (m_TmpHeightFieldRT2, m_HeightFieldRT,m_AddMat,pass:0);
             
             // Graphics.Blit (m_TmpHeightFieldRT3, m_HeightFieldRT); 
+            //texture叠层
+            m_FilterMat.SetFloat( "_WaveParticleRadius", 1*Asample_interval );
+            m_FilterMat.SetFloat( "_DeltaScale", 0.3f );
+            Graphics.Blit( m_HeightFieldTexes[0], m_TmpHeightFieldRT, m_FilterMat, pass: 0 );
+            Graphics.Blit( m_TmpHeightFieldRT, m_TmpHeightFieldRT2, m_FilterMat, pass: 1 );
+            for(int i=1;i<sample_count;i++)
+            {
+                m_FilterMat.SetFloat( "_WaveParticleRadius", (i+1)*Asample_interval );
+                // m_FilterMat.SetFloat( "_DeltaScale", 0.3f );
+                Graphics.Blit( m_HeightFieldTexes[i], m_TmpHeightFieldRT, m_FilterMat, pass: 0 );
+                Graphics.Blit( m_TmpHeightFieldRT, m_TmpHeightFieldRT3, m_FilterMat, pass: 1 );
+                
+                m_AddMat.SetTexture( "_MainTex2", m_TmpHeightFieldRT3);
+                Graphics.Blit (m_TmpHeightFieldRT2, m_TmpHeightFieldRT4,m_AddMat,pass:0);
+                // m_TmpHeightFieldRT2=m_TmpHeightFieldRT4;
+                Graphics.CopyTexture(m_TmpHeightFieldRT4,m_TmpHeightFieldRT2);
+                // Graphics.Blit (m_HeightFieldRT, m_HeightFieldRT,m_AddMat,pass:0);
+            }
+            // m_HeightFieldRT=m_TmpHeightFieldRT2;
+            Graphics.CopyTexture(m_TmpHeightFieldRT2,m_HeightFieldRT);
+            
+
+            // pixData.Dispose();
+            // pixData1.Dispose();
+            // pixDatas.Dispose();//需要dispose
         }
 
         //-------------------------------------------------------------
@@ -155,6 +285,7 @@ namespace OneBitLab.FluidSim
             RenderTexture.active = m_HeightFieldRT;
             GL.Clear( false, true, Color.clear );
             RenderTexture.active = currentRT;
+            // delete [] m_HeightFieldTexes;
         }
 
         //-------------------------------------------------------------

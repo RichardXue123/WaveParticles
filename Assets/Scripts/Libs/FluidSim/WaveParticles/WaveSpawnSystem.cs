@@ -112,7 +112,7 @@ namespace OneBitLab.FluidSim
             NativeQueue<float2> wavepos_queue = new NativeQueue<float2>(Allocator.Temp);
             NativeQueue<float2> neg_wavepos_queue = new NativeQueue<float2>(Allocator.Temp);
             neg_wavepos_queue.Enqueue(new float2(0.0f,0.0f));
-            for(int i=0;i<200;i++)
+            for(int i=0;i<200;i++)//200
             {
                 Entity entity = EntityManager.CreateEntity( m_Archetype );
                 Entity entity2 = EntityManager.CreateEntity( m_Archetype );
@@ -134,16 +134,17 @@ namespace OneBitLab.FluidSim
                     neg_wavepos_queue.Enqueue(neg_wavepos2);
                 
                 //垂直dir方向的，每差一个radius
+                float Radius=radius*0.5f;//*0.9f
                 for(int j=1;j<300;j++)//300
                 {
-                    float2 wavepos3 = new float2(wavepos2.x + radius * j * dir.y,wavepos2.y - radius * j * dir.x);
-                    float2 wavepos4 = new float2(wavepos2.x - radius * j * dir.y,wavepos2.y + radius * j * dir.x);
+                    float2 wavepos3 = new float2(wavepos2.x + Radius * j * dir.y,wavepos2.y - Radius * j * dir.x);
+                    float2 wavepos4 = new float2(wavepos2.x - Radius * j * dir.y,wavepos2.y + Radius * j * dir.x);
                     if(i!=0)
                     {
-                        float2 neg_wavepos3 = new float2(neg_wavepos2.x + radius * j * dir.y,neg_wavepos2.y - radius * j * dir.x);
+                        float2 neg_wavepos3 = new float2(neg_wavepos2.x + Radius * j * dir.y,neg_wavepos2.y - Radius * j * dir.x);
                         if(math.abs(neg_wavepos3.x)<border&&math.abs(neg_wavepos3.y)<border)
                             neg_wavepos_queue.Enqueue(neg_wavepos3);
-                        float2 neg_wavepos4 = new float2(neg_wavepos2.x - radius * j * dir.y,neg_wavepos2.y + radius * j * dir.x);
+                        float2 neg_wavepos4 = new float2(neg_wavepos2.x - Radius * j * dir.y,neg_wavepos2.y + Radius * j * dir.x);
                         if(math.abs(neg_wavepos4.x)<border&&math.abs(neg_wavepos4.y)<border)
                             neg_wavepos_queue.Enqueue(neg_wavepos4);
                     }
@@ -156,10 +157,10 @@ namespace OneBitLab.FluidSim
                         wavepos_queue.Enqueue(wavepos4);
                     }
                     
-                    float2 wavepos5 = new float2(wavepos.x + radius * j * dir.y,wavepos.y - radius * j * dir.x);
-                    float2 neg_wavepos5 = new float2(neg_wavepos.x + radius * j * dir.y,neg_wavepos.y - radius * j * dir.x);
-                    float2 wavepos6 = new float2(wavepos.x - radius * j * dir.y,wavepos.y + radius * j * dir.x);
-                    float2 neg_wavepos6 = new float2(neg_wavepos.x - radius * j * dir.y,neg_wavepos.y + radius * j * dir.x);
+                    float2 wavepos5 = new float2(wavepos.x + Radius * j * dir.y,wavepos.y - Radius * j * dir.x);
+                    float2 neg_wavepos5 = new float2(neg_wavepos.x + Radius * j * dir.y,neg_wavepos.y - Radius * j * dir.x);
+                    float2 wavepos6 = new float2(wavepos.x - Radius * j * dir.y,wavepos.y + Radius * j * dir.x);
+                    float2 neg_wavepos6 = new float2(neg_wavepos.x - Radius * j * dir.y,neg_wavepos.y + Radius * j * dir.x);
                     if(math.abs(neg_wavepos5.x)<border&&math.abs(neg_wavepos5.y)<border)
                         neg_wavepos_queue.Enqueue(neg_wavepos5);
                     if(math.abs(neg_wavepos6.x)<border&&math.abs(neg_wavepos6.y)<border)
@@ -180,7 +181,7 @@ namespace OneBitLab.FluidSim
             {
                 Entity entity = EntityManager.CreateEntity( m_Archetype );
                 // float2 wavepos=wavepos_queue.Dequeue();
-                float Height = 0.08f;
+                float Height = 0.05f;
                 //有些属性，比如waveDir，是固定的，就可以不用每次都new？
                 EntityManager.SetComponentData( entity, new WavePos {Value    = wavepos} );
                 EntityManager.SetComponentData( entity, new WaveHeight {Value = Height} );
@@ -190,11 +191,10 @@ namespace OneBitLab.FluidSim
                 EntityManager.SetComponentData( entity, new Radius { Value = radius } );
             }
             wavepos_queue.Dispose();
-
             while(neg_wavepos_queue.TryDequeue( out float2 wavepos))
             {
                 Entity entity = EntityManager.CreateEntity( m_Archetype );
-                float Height = 0.08f;
+                float Height = 0.05f;
                 //有些属性，比如waveDir，是固定的，就可以不用每次都new？
                 EntityManager.SetComponentData( entity, new WavePos {Value    = wavepos} );
                 EntityManager.SetComponentData( entity, new WaveHeight {Value = -Height} );
