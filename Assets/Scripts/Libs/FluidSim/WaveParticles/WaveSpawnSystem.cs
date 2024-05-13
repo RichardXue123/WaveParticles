@@ -106,104 +106,111 @@ namespace OneBitLab.FluidSim
                 EntityManager.SetComponentData( entities[ i ], new Radius { Value = radius } );
             }
             entities.Dispose();
-
-            //两个循环，摆放粒子
+            int N=2;
+            
             float border = 5.0f;//那个plane的大小是这么大
-            NativeQueue<float2> wavepos_queue = new NativeQueue<float2>(Allocator.Temp);
-            NativeQueue<float2> neg_wavepos_queue = new NativeQueue<float2>(Allocator.Temp);
-            neg_wavepos_queue.Enqueue(new float2(0.0f,0.0f));
-            for(int i=0;i<200;i++)//200
+            for(int w=0;w<N;w++)
             {
-                Entity entity = EntityManager.CreateEntity( m_Archetype );
-                Entity entity2 = EntityManager.CreateEntity( m_Archetype );
-                // float2 wavepos = m_Rnd.NextFloat2( -5.0f, 5.0f );
-                float2 wavepos = new float2((2*i+1) * radius * dir.x,(2*i+1) * radius * dir.y);//已经正则化成单位向量了
-                if(math.abs(wavepos.x)>border+radius/2||math.abs(wavepos.y)>border+radius/2)
+                radius = 0.15f*w;//计算每个w对应的radius等
+                //两个循环，摆放粒子
+                NativeQueue<float2> wavepos_queue = new NativeQueue<float2>(Allocator.Temp);
+                NativeQueue<float2> neg_wavepos_queue = new NativeQueue<float2>(Allocator.Temp);
+                neg_wavepos_queue.Enqueue(new float2(0.0f,0.0f));
+                for(int i=0;i<200;i++)//200
                 {
-                    break;
-                }
-                wavepos_queue.Enqueue(wavepos);
-                float2 wavepos2=-wavepos;
-                wavepos_queue.Enqueue(wavepos2);
+                    Entity entity = EntityManager.CreateEntity( m_Archetype );
+                    Entity entity2 = EntityManager.CreateEntity( m_Archetype );
+                    // float2 wavepos = m_Rnd.NextFloat2( -5.0f, 5.0f );
+                    float2 wavepos = new float2((2*i+1) * radius * dir.x,(2*i+1) * radius * dir.y);//已经正则化成单位向量了
+                    if(math.abs(wavepos.x)>border+radius/2||math.abs(wavepos.y)>border+radius/2)
+                    {
+                        break;
+                    }
+                    wavepos_queue.Enqueue(wavepos);
+                    float2 wavepos2=-wavepos;
+                    wavepos_queue.Enqueue(wavepos2);
 
-                //负粒子
-                float2 neg_wavepos = new float2(2 * i * radius * dir.x, 2 * i * radius * dir.y);
-                float2 neg_wavepos2 = -neg_wavepos;
-                neg_wavepos_queue.Enqueue(neg_wavepos);
-                if(i!=0)
-                    neg_wavepos_queue.Enqueue(neg_wavepos2);
-                
-                //垂直dir方向的，每差一个radius
-                float Radius=radius*0.5f;//*0.9f
-                for(int j=1;j<300;j++)//300
-                {
-                    float2 wavepos3 = new float2(wavepos2.x + Radius * j * dir.y,wavepos2.y - Radius * j * dir.x);
-                    float2 wavepos4 = new float2(wavepos2.x - Radius * j * dir.y,wavepos2.y + Radius * j * dir.x);
+                    //负粒子
+                    float2 neg_wavepos = new float2(2 * i * radius * dir.x, 2 * i * radius * dir.y);
+                    float2 neg_wavepos2 = -neg_wavepos;
+                    neg_wavepos_queue.Enqueue(neg_wavepos);
                     if(i!=0)
-                    {
-                        float2 neg_wavepos3 = new float2(neg_wavepos2.x + Radius * j * dir.y,neg_wavepos2.y - Radius * j * dir.x);
-                        if(math.abs(neg_wavepos3.x)<border&&math.abs(neg_wavepos3.y)<border)
-                            neg_wavepos_queue.Enqueue(neg_wavepos3);
-                        float2 neg_wavepos4 = new float2(neg_wavepos2.x - Radius * j * dir.y,neg_wavepos2.y + Radius * j * dir.x);
-                        if(math.abs(neg_wavepos4.x)<border&&math.abs(neg_wavepos4.y)<border)
-                            neg_wavepos_queue.Enqueue(neg_wavepos4);
-                    }
-                    if(math.abs(wavepos3.x)<border&&math.abs(wavepos3.y)<border)
-                    {
-                        wavepos_queue.Enqueue(wavepos3);
-                    }
-                    if(math.abs(wavepos4.x)<border&&math.abs(wavepos4.y)<border)
-                    {
-                        wavepos_queue.Enqueue(wavepos4);
-                    }
+                        neg_wavepos_queue.Enqueue(neg_wavepos2);
                     
-                    float2 wavepos5 = new float2(wavepos.x + Radius * j * dir.y,wavepos.y - Radius * j * dir.x);
-                    float2 neg_wavepos5 = new float2(neg_wavepos.x + Radius * j * dir.y,neg_wavepos.y - Radius * j * dir.x);
-                    float2 wavepos6 = new float2(wavepos.x - Radius * j * dir.y,wavepos.y + Radius * j * dir.x);
-                    float2 neg_wavepos6 = new float2(neg_wavepos.x - Radius * j * dir.y,neg_wavepos.y + Radius * j * dir.x);
-                    if(math.abs(neg_wavepos5.x)<border&&math.abs(neg_wavepos5.y)<border)
-                        neg_wavepos_queue.Enqueue(neg_wavepos5);
-                    if(math.abs(neg_wavepos6.x)<border&&math.abs(neg_wavepos6.y)<border)
-                        neg_wavepos_queue.Enqueue(neg_wavepos6);
-                    if(math.abs(wavepos5.x)<border&&math.abs(wavepos5.y)<border)
+                    //垂直dir方向的，每差一个radius
+                    float Radius=radius*0.5f;//*0.9f
+                    for(int j=1;j<300;j++)//300
                     {
-                        wavepos_queue.Enqueue(wavepos5);
-                    }
-                    if(math.abs(wavepos6.x)<border&&math.abs(wavepos6.y)<border)
-                    {
-                        wavepos_queue.Enqueue(wavepos6);
+                        float2 wavepos3 = new float2(wavepos2.x + Radius * j * dir.y,wavepos2.y - Radius * j * dir.x);
+                        float2 wavepos4 = new float2(wavepos2.x - Radius * j * dir.y,wavepos2.y + Radius * j * dir.x);
+                        if(i!=0)
+                        {
+                            float2 neg_wavepos3 = new float2(neg_wavepos2.x + Radius * j * dir.y,neg_wavepos2.y - Radius * j * dir.x);
+                            if(math.abs(neg_wavepos3.x)<border&&math.abs(neg_wavepos3.y)<border)
+                                neg_wavepos_queue.Enqueue(neg_wavepos3);
+                            float2 neg_wavepos4 = new float2(neg_wavepos2.x - Radius * j * dir.y,neg_wavepos2.y + Radius * j * dir.x);
+                            if(math.abs(neg_wavepos4.x)<border&&math.abs(neg_wavepos4.y)<border)
+                                neg_wavepos_queue.Enqueue(neg_wavepos4);
+                        }
+                        if(math.abs(wavepos3.x)<border&&math.abs(wavepos3.y)<border)
+                        {
+                            wavepos_queue.Enqueue(wavepos3);
+                        }
+                        if(math.abs(wavepos4.x)<border&&math.abs(wavepos4.y)<border)
+                        {
+                            wavepos_queue.Enqueue(wavepos4);
+                        }
+                        
+                        float2 wavepos5 = new float2(wavepos.x + Radius * j * dir.y,wavepos.y - Radius * j * dir.x);
+                        float2 neg_wavepos5 = new float2(neg_wavepos.x + Radius * j * dir.y,neg_wavepos.y - Radius * j * dir.x);
+                        float2 wavepos6 = new float2(wavepos.x - Radius * j * dir.y,wavepos.y + Radius * j * dir.x);
+                        float2 neg_wavepos6 = new float2(neg_wavepos.x - Radius * j * dir.y,neg_wavepos.y + Radius * j * dir.x);
+                        if(math.abs(neg_wavepos5.x)<border&&math.abs(neg_wavepos5.y)<border)
+                            neg_wavepos_queue.Enqueue(neg_wavepos5);
+                        if(math.abs(neg_wavepos6.x)<border&&math.abs(neg_wavepos6.y)<border)
+                            neg_wavepos_queue.Enqueue(neg_wavepos6);
+                        if(math.abs(wavepos5.x)<border&&math.abs(wavepos5.y)<border)
+                        {
+                            wavepos_queue.Enqueue(wavepos5);
+                        }
+                        if(math.abs(wavepos6.x)<border&&math.abs(wavepos6.y)<border)
+                        {
+                            wavepos_queue.Enqueue(wavepos6);
+                        }
                     }
                 }
+                // int queue_size=wavepos_queue.Count;
+                // for(int i=0;i<queue_size;i++)
+                while(wavepos_queue.TryDequeue( out float2 wavepos))
+                {
+                    Entity entity = EntityManager.CreateEntity( m_Archetype );
+                    // float2 wavepos=wavepos_queue.Dequeue();
+                    float Height = 0.05f;
+                    //有些属性，比如waveDir，是固定的，就可以不用每次都new？
+                    EntityManager.SetComponentData( entity, new WavePos {Value    = wavepos} );
+                    EntityManager.SetComponentData( entity, new WaveHeight {Value = Height} );
+                    EntityManager.SetComponentData( entity, new WaveSpeed {Value = speed} );
+                    EntityManager.SetComponentData( entity, new WaveDir { Value = dir } );
+                    EntityManager.SetComponentData( entity, new WaveVector { Value = k } );
+                    EntityManager.SetComponentData( entity, new Radius { Value = radius } );
+                }
+                wavepos_queue.Dispose();
+                while(neg_wavepos_queue.TryDequeue( out float2 wavepos))
+                {
+                    Entity entity = EntityManager.CreateEntity( m_Archetype );
+                    float Height = 0.05f;
+                    //有些属性，比如waveDir，是固定的，就可以不用每次都new？
+                    EntityManager.SetComponentData( entity, new WavePos {Value    = wavepos} );
+                    EntityManager.SetComponentData( entity, new WaveHeight {Value = -Height} );
+                    EntityManager.SetComponentData( entity, new WaveSpeed {Value = speed} );
+                    EntityManager.SetComponentData( entity, new WaveDir { Value = dir } );
+                    EntityManager.SetComponentData( entity, new WaveVector { Value = k } );
+                    EntityManager.SetComponentData( entity, new Radius { Value = radius } );
+                }
+                neg_wavepos_queue.Dispose();
             }
-            // int queue_size=wavepos_queue.Count;
-            // for(int i=0;i<queue_size;i++)
-            while(wavepos_queue.TryDequeue( out float2 wavepos))
-            {
-                Entity entity = EntityManager.CreateEntity( m_Archetype );
-                // float2 wavepos=wavepos_queue.Dequeue();
-                float Height = 0.05f;
-                //有些属性，比如waveDir，是固定的，就可以不用每次都new？
-                EntityManager.SetComponentData( entity, new WavePos {Value    = wavepos} );
-                EntityManager.SetComponentData( entity, new WaveHeight {Value = Height} );
-                EntityManager.SetComponentData( entity, new WaveSpeed {Value = speed} );
-                EntityManager.SetComponentData( entity, new WaveDir { Value = dir } );
-                EntityManager.SetComponentData( entity, new WaveVector { Value = k } );
-                EntityManager.SetComponentData( entity, new Radius { Value = radius } );
-            }
-            wavepos_queue.Dispose();
-            while(neg_wavepos_queue.TryDequeue( out float2 wavepos))
-            {
-                Entity entity = EntityManager.CreateEntity( m_Archetype );
-                float Height = 0.05f;
-                //有些属性，比如waveDir，是固定的，就可以不用每次都new？
-                EntityManager.SetComponentData( entity, new WavePos {Value    = wavepos} );
-                EntityManager.SetComponentData( entity, new WaveHeight {Value = -Height} );
-                EntityManager.SetComponentData( entity, new WaveSpeed {Value = speed} );
-                EntityManager.SetComponentData( entity, new WaveDir { Value = dir } );
-                EntityManager.SetComponentData( entity, new WaveVector { Value = k } );
-                EntityManager.SetComponentData( entity, new Radius { Value = radius } );
-            }
-            neg_wavepos_queue.Dispose();
+            
+
             
 
             m_AllEntitiesQuery = GetEntityQuery( ComponentType.ReadOnly<WaveHeight>() );
