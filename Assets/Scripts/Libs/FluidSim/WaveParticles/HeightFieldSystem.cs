@@ -52,7 +52,7 @@ namespace OneBitLab.FluidSim
                                               mipChain: false,
                                               linear: true );
             L = 1.0f;
-            sample_count = 10;
+            sample_count = 8;
             sample_interval = L / sample_count;
             // m_HeightFieldTexes= new NativeArray<Texture2D>( sample_count, Allocator.Temp );
             m_HeightFieldTexes = new Texture2D[sample_count];
@@ -135,8 +135,8 @@ namespace OneBitLab.FluidSim
             //     pixDatas2[i] = pixData;
             //     Debug.Log("i:"+i+pixDatas2[i][i]);
             // }
-            NativeArray<float> before = new NativeArray<float>(pLength,Allocator.Temp);;
-            before.CopyFrom(pixDatas2[0]);
+            //NativeArray<float> before = new NativeArray<float>(pLength,Allocator.Temp);;
+            //before.CopyFrom(pixDatas2[0]);
             // Debug.Log(before[0]);
             // Bake data we want to capture in the job
             int   w      = m_HeightFieldRT.width;
@@ -177,7 +177,7 @@ namespace OneBitLab.FluidSim
 
                     //pixData[ x0y0 ] = ( byte )( pixData[ x0y0 ] + height.Value);
                     // Do manual anti-aliasing for the 2x2 pixel square
-                    if(radius.Value>0.2f)
+                    /*if(radius.Value>0.2f)
                     {
                         pixData1[ x0y0 ] = pixData1[ x0y0 ] + height.Value * ( 1.0f - dX ) * ( 1.0f - dY );
                         pixData1[ x1y0 ] = pixData1[ x1y0 ] + height.Value * dX            * ( 1.0f - dY );
@@ -189,15 +189,19 @@ namespace OneBitLab.FluidSim
                         pixData[ x1y0 ] = pixData[ x1y0 ] + height.Value * dX            * ( 1.0f - dY );
                         pixData[ x0y1 ] = pixData[ x0y1 ] + height.Value * ( 1.0f - dX ) * dY;
                         pixData[ x1y1 ] = pixData[ x1y1 ] + height.Value * dX            * dY;
-                    }
+                    }*/
                     int index=(int)(radius.Value/Asample_interval);
                     if(index >= Asample_count)
                     {
                         index = Asample_count-1;
                     }
-                    // Debug.Log(index);
+                    if(x0y0<0)
+                    {
+                        Debug.Log("index x0y0" + x0y0+","+x+","+y);
+                        Debug.Log("wPos.Value" + wPos.Value);
+                    }
                     NativeArray<float> TmpPixData = pixDatas2[index];
-                    float before1 = TmpPixData[x0y0];
+                    //float before1 = TmpPixData[x0y0];
                     // NativeArray<float> TmpPixData = m_HeightFieldTexes[index].GetRawTextureData<float>();
                     // pixDatas[index*pLength + x0y0 ] = pixDatas[index*pLength + x0y0 ] + height.Value * ( 1.0f - dX ) * ( 1.0f - dY );
                     // pixDatas[index*pLength + x1y0 ] = pixDatas[index*pLength + x1y0 ] + height.Value * dX            * ( 1.0f - dY );
@@ -256,7 +260,9 @@ namespace OneBitLab.FluidSim
             for(int i=1;i<sample_count;i++)
             {
                 m_FilterMat.SetFloat( "_WaveParticleRadius", (i+1)*Asample_interval );
-                // m_FilterMat.SetFloat( "_DeltaScale", 0.3f );
+                float Scale = (sample_count - i) * 0.3f / sample_count;
+                m_FilterMat.SetFloat( "_DeltaScale", Scale);
+                // 半径越小(i越小)，delta越大
                 Graphics.Blit( m_HeightFieldTexes[i], m_TmpHeightFieldRT, m_FilterMat, pass: 0 );
                 Graphics.Blit( m_TmpHeightFieldRT, m_TmpHeightFieldRT3, m_FilterMat, pass: 1 );
                 

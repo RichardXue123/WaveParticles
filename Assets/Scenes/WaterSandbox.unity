@@ -1008,8 +1008,8 @@ MonoBehaviour:
   windDir:
     x: 1
     y: 0
-  windSpeed: 50
-  Fetch: 50000
+  windSpeed: 25
+  Fetch: 500
   Hs: 3
   Tp: 10
 --- !u!4 &482783143

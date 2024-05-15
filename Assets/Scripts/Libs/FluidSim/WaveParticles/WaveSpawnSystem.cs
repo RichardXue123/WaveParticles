@@ -14,18 +14,18 @@ namespace OneBitLab.FluidSim
     public class WaveSpawnSystem : SystemBase
     {
         //-------------------------------------------------------------
-        public static readonly SharedStatic<float> c_WaveParticleRadius = 
+        public static readonly SharedStatic<float> c_WaveParticleRadius =
             SharedStatic<float>.GetOrCreate<WaveSpawnSystem, FloatFieldKey>();
 
         // Define a Key type to identify IntField
         private class FloatFieldKey { }
         //public static float c_WaveParticleRadius = 0.15f;
         public const float c_WaveParticleHeight = 0.05f;
-        public const float c_WaveParticleSpeed  = 0.5f;
-        public float m_windSpeed  = 0.5f;
-        private const float gravity=9.8f;
+        public const float c_WaveParticleSpeed = 0.5f;
+        public float m_windSpeed = 0.5f;
+        private const float gravity = 9.8f;
 
-        private const int c_StartEntitiesCount = 0;//300
+        private const int c_StartEntitiesCount = 0; //300
 
         public static float s_WaveParticleMinHeight = c_WaveParticleHeight;
 
@@ -35,8 +35,8 @@ namespace OneBitLab.FluidSim
             {
                 // TODO: change for math.EPSILON
                 // avoid division by 0
-                m_DropsInterval = 1.0f / math.max( value, 0.0000001f );
-                m_TimeToDrop    = m_DropsInterval;
+                m_DropsInterval = 1.0f / math.max(value, 0.0000001f);
+                m_TimeToDrop = m_DropsInterval;
             }
         }
 
@@ -49,11 +49,14 @@ namespace OneBitLab.FluidSim
         private float                                  m_TimeToDrop = 1000000.0f;
         private Random                                 m_Rnd        = new Random( seed: 1234 );
         private EntityQuery                            m_AllEntitiesQuery;
-        
+
         //-------------------------------------------------------------
-        public void AddExternalDependency( JobHandle newDependency )
+        public void AddExternalDependency(JobHandle newDependency)
         {
-            m_ExternalDependency = JobHandle.CombineDependencies( m_ExternalDependency, newDependency );
+            m_ExternalDependency = JobHandle.CombineDependencies(
+                m_ExternalDependency,
+                newDependency
+            );
         }
 
         //-------------------------------------------------------------
@@ -78,16 +81,17 @@ namespace OneBitLab.FluidSim
 
             float k = 3.0f;//先默认一个值
             float kLength = math.max(0.001f, k);
-            float speed = (float)Math.Sqrt(gravity/ kLength);
+            float speed = (float)Math.Sqrt(gravity / kLength);
             speed = 0.5f;
-            float radius = (float)Math.PI/ kLength;
+            float radius = (float)Math.PI / kLength;
             radius = 0.15f;
             c_WaveParticleRadius.Data = radius;
-            float2 dir = math.normalizesafe(m_Rnd.NextFloat2( -1.0f, 1.0f ));
-            for ( int i = 0; i < c_StartEntitiesCount; i++ )
+            float2 dir = math.normalizesafe(m_Rnd.NextFloat2(-1.0f, 1.0f));
+            for (int i = 0; i < c_StartEntitiesCount; i++)
             {
                 // float2 dir = math.normalizesafe(m_Rnd.NextFloat2( -1.0f, 1.0f ));
-                float height = 2 * (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k, dir) * 2);
+                float height =
+                    2 * (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k, dir) * 2);
                 // height = -0.05f;
                 height = 0.3f;
                 // if(m_Rnd.NextBool())
@@ -106,115 +110,191 @@ namespace OneBitLab.FluidSim
                 EntityManager.SetComponentData( entities[ i ], new Radius { Value = radius } );
             }
             entities.Dispose();
-            int N=2;
-            
-            float border = 5.0f;//那个plane的大小是这么大
-            for(int w=0;w<N;w++)
+            int N = 12;
+            int M = 12;
+            int L = 5;//限制lambda max
+            //k的具体取值还要思考，本意是为了限制半径r的范围//其实还应该限制速度
+            //参考20年的论文
+            float kmin = (float)Math.PI / L;//0.5f
+            float kmax = 30.0f;
+            float Rmax = 5.0f;
+            float border = 5.0f; //那个plane的大小是这么大
+            float minHeight = 0.001f;
+            float dk = 2 * (float)Math.PI / L;
+            /*for (int n = -N/2; n <= N /2; n++)
             {
-                radius = 0.15f*w;//计算每个w对应的radius等
-                //两个循环，摆放粒子
-                NativeQueue<float2> wavepos_queue = new NativeQueue<float2>(Allocator.Temp);
-                NativeQueue<float2> neg_wavepos_queue = new NativeQueue<float2>(Allocator.Temp);
-                neg_wavepos_queue.Enqueue(new float2(0.0f,0.0f));
-                for(int i=0;i<200;i++)//200
+                float kx = 2 * (float)Math.PI * n / L;
+                for(int m = -M/2; m <= M/2; m++)
                 {
-                    Entity entity = EntityManager.CreateEntity( m_Archetype );
-                    Entity entity2 = EntityManager.CreateEntity( m_Archetype );
-                    // float2 wavepos = m_Rnd.NextFloat2( -5.0f, 5.0f );
-                    float2 wavepos = new float2((2*i+1) * radius * dir.x,(2*i+1) * radius * dir.y);//已经正则化成单位向量了
-                    if(math.abs(wavepos.x)>border+radius/2||math.abs(wavepos.y)>border+radius/2)
+                    float ky = 2 * (float)Math.PI * m / L;
+                    float K = (float)Math.Sqrt(kx * kx + ky * ky);
+                    if (K < kmin || K > kmax)
+                    {
+                        Debug.Log("K out of range:"+ K);
+                        continue;
+                    }
+                    dir = math.normalizesafe(new float2(kx, ky)); //计算每个k对应的dir
+                    float Radius = (float)Math.PI / K;
+                    if(Radius > Rmax)
+                    {
+                        Debug.Log("R out of range:" + Radius);
+                        continue;
+                    }
+                    float Height = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k, dir) * 2) * dk / 2;//在24年的论文没有/2，但是20年的有/2
+                    if(Height < minHeight)
+                    {
+                        Debug.Log("Height out of range:"+ Height);
+                        continue;
+                    }
+                    speed = (float)Math.Sqrt(gravity / K);
+                    //把创建一层（一类，一个阵列）粒子的过程封装成一个函数
+                    GenerateParticles(dir, Height, speed, K, Radius, border);
+                }
+            }*/
+            //swell
+            for (int n = -N / 2; n <= N / 2; n++)
+            {
+                float kx = 2 * (float)Math.PI * n / L;
+                for (int m = -M / 2; m <= M / 2; m++)
+                {
+                    float ky = 2 * (float)Math.PI * m / L;
+                    float K = (float)Math.Sqrt(kx * kx + ky * ky);
+                    if (K < kmin || K > kmax)
+                    {
+                        Debug.Log("K out of range:" + K);
+                        continue;
+                    }
+                    dir = math.normalizesafe(new float2(kx, ky)); //计算每个k对应的dir
+                    float Radius = (float)Math.PI / K;
+                    if (Radius > Rmax)
+                    {
+                        Debug.Log("R out of range:" + Radius);
+                        continue;
+                    }
+                    float Height = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPGlennSpectrum(k, dir) * 2) * dk / 2;
+                    if (Height < minHeight)
+                    {
+                        Debug.Log("Height out of range:" + Height);
+                        continue;
+                    }
+                    speed = (float)Math.Sqrt(gravity / K);
+                    GenerateParticles(dir, Height, speed, K, Radius, border);
+                }
+            }
+
+            m_AllEntitiesQuery = GetEntityQuery(ComponentType.ReadOnly<WaveHeight>());
+            Debug.Log(
+                "particle count:" + m_AllEntitiesQuery.CalculateEntityCountWithoutFiltering()
+            );
+        }
+
+        private void GenerateParticles(float2 dir, float Height, float speed, float k, float radius,float border)
+        {
+            // dir = math.normalizesafe(m_Rnd.NextFloat2(-1.0f, 1.0f)); //计算每个w对应的dir？
+            // radius = 0.15f * w; //计算每个w对应的radius等
+            //两个循环，摆放粒子
+            NativeQueue<float2> wavepos_queue = new NativeQueue<float2>(Allocator.Temp);
+            NativeQueue<float2> neg_wavepos_queue = new NativeQueue<float2>(Allocator.Temp);
+            // neg_wavepos_queue.Enqueue(new float2(0.0f,0.0f));
+            //需要处理dirx=0的特殊情况
+            for (int i = 0; i < 200; i++) //200
+            {
+                Entity entity = EntityManager.CreateEntity(m_Archetype);
+                float2 wavepos;
+                if (dir.x==0)
+                {
+                    wavepos = new float2(0, -border + 2 * i * radius / math.abs(dir.y)); //此时diry一定是1
+                    if (wavepos.x > border - radius) //不足够放一个负粒子了
                     {
                         break;
                     }
-                    wavepos_queue.Enqueue(wavepos);
-                    float2 wavepos2=-wavepos;
-                    wavepos_queue.Enqueue(wavepos2);
-
-                    //负粒子
-                    float2 neg_wavepos = new float2(2 * i * radius * dir.x, 2 * i * radius * dir.y);
-                    float2 neg_wavepos2 = -neg_wavepos;
-                    neg_wavepos_queue.Enqueue(neg_wavepos);
-                    if(i!=0)
-                        neg_wavepos_queue.Enqueue(neg_wavepos2);
-                    
-                    //垂直dir方向的，每差一个radius
-                    float Radius=radius*0.5f;//*0.9f
-                    for(int j=1;j<300;j++)//300
+                }
+                else
+                {
+                    wavepos = new float2(-border + 2 * i * radius / math.abs(dir.x), 0); //已经正则化成单位向量了
+                    if (wavepos.x > border - radius) //不足够放一个负粒子了
                     {
-                        float2 wavepos3 = new float2(wavepos2.x + Radius * j * dir.y,wavepos2.y - Radius * j * dir.x);
-                        float2 wavepos4 = new float2(wavepos2.x - Radius * j * dir.y,wavepos2.y + Radius * j * dir.x);
-                        if(i!=0)
-                        {
-                            float2 neg_wavepos3 = new float2(neg_wavepos2.x + Radius * j * dir.y,neg_wavepos2.y - Radius * j * dir.x);
-                            if(math.abs(neg_wavepos3.x)<border&&math.abs(neg_wavepos3.y)<border)
-                                neg_wavepos_queue.Enqueue(neg_wavepos3);
-                            float2 neg_wavepos4 = new float2(neg_wavepos2.x - Radius * j * dir.y,neg_wavepos2.y + Radius * j * dir.x);
-                            if(math.abs(neg_wavepos4.x)<border&&math.abs(neg_wavepos4.y)<border)
-                                neg_wavepos_queue.Enqueue(neg_wavepos4);
-                        }
-                        if(math.abs(wavepos3.x)<border&&math.abs(wavepos3.y)<border)
-                        {
-                            wavepos_queue.Enqueue(wavepos3);
-                        }
-                        if(math.abs(wavepos4.x)<border&&math.abs(wavepos4.y)<border)
-                        {
-                            wavepos_queue.Enqueue(wavepos4);
-                        }
-                        
-                        float2 wavepos5 = new float2(wavepos.x + Radius * j * dir.y,wavepos.y - Radius * j * dir.x);
-                        float2 neg_wavepos5 = new float2(neg_wavepos.x + Radius * j * dir.y,neg_wavepos.y - Radius * j * dir.x);
-                        float2 wavepos6 = new float2(wavepos.x - Radius * j * dir.y,wavepos.y + Radius * j * dir.x);
-                        float2 neg_wavepos6 = new float2(neg_wavepos.x - Radius * j * dir.y,neg_wavepos.y + Radius * j * dir.x);
-                        if(math.abs(neg_wavepos5.x)<border&&math.abs(neg_wavepos5.y)<border)
-                            neg_wavepos_queue.Enqueue(neg_wavepos5);
-                        if(math.abs(neg_wavepos6.x)<border&&math.abs(neg_wavepos6.y)<border)
-                            neg_wavepos_queue.Enqueue(neg_wavepos6);
-                        if(math.abs(wavepos5.x)<border&&math.abs(wavepos5.y)<border)
-                        {
-                            wavepos_queue.Enqueue(wavepos5);
-                        }
-                        if(math.abs(wavepos6.x)<border&&math.abs(wavepos6.y)<border)
-                        {
-                            wavepos_queue.Enqueue(wavepos6);
-                        }
+                        break;
                     }
                 }
-                // int queue_size=wavepos_queue.Count;
-                // for(int i=0;i<queue_size;i++)
-                while(wavepos_queue.TryDequeue( out float2 wavepos))
+                wavepos_queue.Enqueue(wavepos);
+
+                //负粒子
+                float2 neg_wavepos;
+                if (dir.x == 0)
                 {
-                    Entity entity = EntityManager.CreateEntity( m_Archetype );
-                    // float2 wavepos=wavepos_queue.Dequeue();
-                    float Height = 0.05f;
-                    //有些属性，比如waveDir，是固定的，就可以不用每次都new？
-                    EntityManager.SetComponentData( entity, new WavePos {Value    = wavepos} );
-                    EntityManager.SetComponentData( entity, new WaveHeight {Value = Height} );
-                    EntityManager.SetComponentData( entity, new WaveSpeed {Value = speed} );
-                    EntityManager.SetComponentData( entity, new WaveDir { Value = dir } );
-                    EntityManager.SetComponentData( entity, new WaveVector { Value = k } );
-                    EntityManager.SetComponentData( entity, new Radius { Value = radius } );
+                    neg_wavepos = new float2(0, -border + (2 * i + 1) * radius / math.abs(dir.y));
                 }
-                wavepos_queue.Dispose();
-                while(neg_wavepos_queue.TryDequeue( out float2 wavepos))
+                else
                 {
-                    Entity entity = EntityManager.CreateEntity( m_Archetype );
-                    float Height = 0.05f;
-                    //有些属性，比如waveDir，是固定的，就可以不用每次都new？
-                    EntityManager.SetComponentData( entity, new WavePos {Value    = wavepos} );
-                    EntityManager.SetComponentData( entity, new WaveHeight {Value = -Height} );
-                    EntityManager.SetComponentData( entity, new WaveSpeed {Value = speed} );
-                    EntityManager.SetComponentData( entity, new WaveDir { Value = dir } );
-                    EntityManager.SetComponentData( entity, new WaveVector { Value = k } );
-                    EntityManager.SetComponentData( entity, new Radius { Value = radius } );
+                    neg_wavepos = new float2(-border + (2 * i + 1) * radius / math.abs(dir.x), 0);
                 }
-                neg_wavepos_queue.Dispose();
+                    
+                neg_wavepos_queue.Enqueue(neg_wavepos);
+
+                //垂直dir方向的，每差一个radius
+                float Radius = radius * 0.5f; //*0.9f
+                for (int j = 1; j < 300; j++) //300
+                {
+                    float2 wavepos3 = new float2(
+                        wavepos.x + Radius * j * dir.y,
+                        wavepos.y - Radius * j * dir.x
+                    );
+                    float2 wavepos4 = new float2(
+                        wavepos.x - Radius * j * dir.y,
+                        wavepos.y + Radius * j * dir.x
+                    );
+                    if (math.abs(wavepos3.y) < border)
+                    {
+                        wavepos_queue.Enqueue(wavepos3);
+                    }
+                    if (math.abs(wavepos4.y) < border)
+                    {
+                        wavepos_queue.Enqueue(wavepos4);
+                    }
+                    float2 neg_wavepos3 = new float2(
+                        neg_wavepos.x + Radius * j * dir.y,
+                        neg_wavepos.y - Radius * j * dir.x
+                    );
+                    if (math.abs(neg_wavepos3.y) < border)
+                        neg_wavepos_queue.Enqueue(neg_wavepos3);
+                    float2 neg_wavepos4 = new float2(
+                        neg_wavepos.x - Radius * j * dir.y,
+                        neg_wavepos.y + Radius * j * dir.x
+                    );
+                    if (math.abs(neg_wavepos4.y) < border)
+                        neg_wavepos_queue.Enqueue(neg_wavepos4);
+                }
             }
-            
-
-            
-
-            m_AllEntitiesQuery = GetEntityQuery( ComponentType.ReadOnly<WaveHeight>() );
-            Debug.Log("particle count:"+m_AllEntitiesQuery.CalculateEntityCountWithoutFiltering());
+            //有些属性，比如waveDir，是固定的，就可以不用每次都new？
+            WaveHeight wh = new WaveHeight { Value = Height };
+            WaveSpeed ws = new WaveSpeed { Value = speed };
+            WaveDir wd = new WaveDir { Value = dir };
+            WaveVector wv = new WaveVector { Value = k };
+            Radius wr = new Radius { Value = radius };
+            while (wavepos_queue.TryDequeue(out float2 wavepos))
+            {
+                Entity entity = EntityManager.CreateEntity(m_Archetype);
+                EntityManager.SetComponentData(entity, new WavePos { Value = wavepos });
+                EntityManager.SetComponentData(entity, wh);
+                EntityManager.SetComponentData(entity, ws);
+                EntityManager.SetComponentData(entity, wd);
+                EntityManager.SetComponentData(entity, wv);
+                EntityManager.SetComponentData(entity, wr);
+            }
+            wavepos_queue.Dispose();
+            wh = new WaveHeight { Value = -Height };
+            while (neg_wavepos_queue.TryDequeue(out float2 wavepos))
+            {
+                Entity entity = EntityManager.CreateEntity(m_Archetype);
+                EntityManager.SetComponentData(entity, new WavePos { Value = wavepos });
+                EntityManager.SetComponentData(entity, wh);
+                EntityManager.SetComponentData(entity, ws);
+                EntityManager.SetComponentData(entity, wd);
+                EntityManager.SetComponentData(entity, wv);
+                EntityManager.SetComponentData(entity, wr);
+            }
+            neg_wavepos_queue.Dispose();
         }
 
         //-------------------------------------------------------------
@@ -225,7 +305,7 @@ namespace OneBitLab.FluidSim
             // When number of particles is small we can let them live longer
             int subDivNumber = particleCount < 50_000 ? 4 : 3;
 
-            s_WaveParticleMinHeight = c_WaveParticleHeight / math.pow( 3, subDivNumber );//如果高度小于这个，那就可以裁剪掉
+            s_WaveParticleMinHeight = c_WaveParticleHeight / math.pow(3, subDivNumber); //如果高度小于这个，那就可以裁剪掉
         }
 
         //-------------------------------------------------------------
@@ -235,61 +315,66 @@ namespace OneBitLab.FluidSim
 
             m_ExternalDependency.Complete();
 
-            var messageQueue = MessageService.Instance.GetOrCreateMessageQueue<ParticleSpawnMessage>();
+            var messageQueue =
+                MessageService.Instance.GetOrCreateMessageQueue<ParticleSpawnMessage>();
 
             // Check if need to add drops to the spawning queue
             m_TimeToDrop -= Time.DeltaTime;
             // Continue until we have available drops to spawn
-            while( m_TimeToDrop < 0 )
+            while (m_TimeToDrop < 0)
             {
-                messageQueue.Enqueue( new ParticleSpawnMessage {Pos = m_Rnd.NextFloat3( -5.0f, 5.0f )} );
+                messageQueue.Enqueue(
+                    new ParticleSpawnMessage { Pos = m_Rnd.NextFloat3(-5.0f, 5.0f) }
+                );
                 // We don't just reset m_TimeToDrop to the m_DropsInterval value,
                 // it's done to avoid edge cases when deltaTime grows very big and we miss drops spawning,
                 // for that scenario we just increase TimeToDrop and if we still below 0 then spawn agian
                 m_TimeToDrop += m_DropsInterval;
             }
 
-            EntityCommandBuffer ecb       = m_EndSimECBSystem.CreateCommandBuffer();
-            EntityArchetype     archetype = m_Archetype;
+            EntityCommandBuffer ecb = m_EndSimECBSystem.CreateCommandBuffer();
+            EntityArchetype archetype = m_Archetype;
 
-            Dependency = Job
-                         .WithCode( () =>
-                         {
-                             while( messageQueue.TryDequeue( out ParticleSpawnMessage message ) )
-                             {
-                                 // TODO: change 0.01 for math.EPSILON in future update
-                                 for( float rot = 0; rot < 2.0f * math.PI - 0.01f; rot += math.PI / 3.0f )
-                                 {
-                                     var waveDir = new WaveDir
-                                     {
-                                         Value = math
-                                                 .rotate( quaternion.RotateY( rot ),
-                                                          new float3( 1.0f, 0.0f, 0.0f ) )
-                                                 .xz
-                                     };
+            Dependency = Job.WithCode(() =>
+                {
+                    while (messageQueue.TryDequeue(out ParticleSpawnMessage message))
+                    {
+                        // TODO: change 0.01 for math.EPSILON in future update
+                        for (float rot = 0; rot < 2.0f * math.PI - 0.01f; rot += math.PI / 3.0f)
+                        {
+                            var waveDir = new WaveDir
+                            {
+                                Value = math.rotate(
+                                    quaternion.RotateY(rot),
+                                    new float3(1.0f, 0.0f, 0.0f)
+                                ).xz
+                            };
 
-                                     float dispersionAngle = math.PI / 3.0f;
+                            float dispersionAngle = math.PI / 3.0f;
 
-                                     // Particle need to be subdivided when gap between two particles become visible
-                                     // More details on Page 101: http://www.cemyuksel.com/research/waveparticles/cem_yuksel_dissertation.pdf
-                                     float timeToSubdivide =
-                                         c_WaveParticleRadius.Data /
-                                         ( 2.0f * math.tan( dispersionAngle * 0.5f ) * c_WaveParticleSpeed );
+                            // Particle need to be subdivided when gap between two particles become visible
+                            // More details on Page 101: http://www.cemyuksel.com/research/waveparticles/cem_yuksel_dissertation.pdf
+                            float timeToSubdivide =
+                                c_WaveParticleRadius.Data
+                                / (2.0f * math.tan(dispersionAngle * 0.5f) * c_WaveParticleSpeed);
 
-                                     Entity entity = ecb.CreateEntity( archetype );
-                                     ecb.SetComponent( entity, new WaveOrigin {Value = message.Pos.xz} );
-                                     ecb.SetComponent( entity, new WavePos {Value    = message.Pos.xz} );
-                                     ecb.SetComponent( entity, waveDir );
-                                     ecb.SetComponent( entity, new WaveHeight {Value   = c_WaveParticleHeight} );
-                                     ecb.SetComponent( entity, new WaveSpeed {Value    = c_WaveParticleSpeed} );
-                                     ecb.SetComponent( entity, new DispersAngle {Value = dispersionAngle} );
-                                     ecb.SetComponent( entity, new TimeToSubdiv {Value = timeToSubdivide} );
-                                 }
-                             }
-                         } )
-                         .Schedule( JobHandle.CombineDependencies( Dependency, m_ExternalDependency ) );
+                            Entity entity = ecb.CreateEntity(archetype);
+                            ecb.SetComponent(entity, new WaveOrigin { Value = message.Pos.xz });
+                            ecb.SetComponent(entity, new WavePos { Value = message.Pos.xz });
+                            ecb.SetComponent(entity, waveDir);
+                            ecb.SetComponent(
+                                entity,
+                                new WaveHeight { Value = c_WaveParticleHeight }
+                            );
+                            ecb.SetComponent(entity, new WaveSpeed { Value = c_WaveParticleSpeed });
+                            ecb.SetComponent(entity, new DispersAngle { Value = dispersionAngle });
+                            ecb.SetComponent(entity, new TimeToSubdiv { Value = timeToSubdivide });
+                        }
+                    }
+                })
+                .Schedule(JobHandle.CombineDependencies(Dependency, m_ExternalDependency));
 
-            m_EndSimECBSystem.AddJobHandleForProducer( Dependency );
+            m_EndSimECBSystem.AddJobHandleForProducer(Dependency);
         }
 
         //-------------------------------------------------------------
