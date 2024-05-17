@@ -5,6 +5,7 @@
         _MainTex ("Texture", 2D) = "white" {}
         _Color ("Color", Color) = (1,1,1,1)
         _Skybox ("Skybox", Cube) = "defaulttexture" {}
+        _LineColor("Line Color", COLOR) = (0,1,0,1)
     }
     SubShader
     {
@@ -85,5 +86,63 @@
             }
             ENDCG
         }
+
+        //Pass
+        //{
+        //    Tags { "RenderType" = "Opaque" }
+        //    LOD 100
+
+        //    CGPROGRAM
+        //    #pragma target 5.0
+        //    #pragma vertex vert
+        //    #pragma fragment frag
+        //    //几何着色器
+        //    #pragma geometry geo
+        //    #include "UnityCG.cginc"
+
+        //    fixed4 _LineColor;
+        //    struct v2g {
+        //        //顶点位置
+        //        float4  pos       : POSITION;
+        //        //法线
+        //        float3  normal    : NORMAL;
+        //        //纹理坐
+        //        float2  tex0        : TEXCOORD0;
+        //    };
+        //    struct g2f {
+        //        //像素位置
+        //        float4  pos       : POSITION;
+        //        //纹理
+        //        float2  tex0        : TEXCOORD0;
+        //    };
+        //    
+        //    v2g vert(appdata_base v)
+        //    {
+        //        v2g o;
+        //        o.pos = UnityObjectToClipPos(v.vertex);
+        //        o.normal = v.normal;
+        //        //初始化纹理信息
+        //        o.tex0 = float2(0, 0);
+        //        return o;
+        //    }
+        //    [maxvertexcount(3)]
+        //    void geo(triangle v2g vg[3], inout LineStream<g2f> ls)
+        //    {
+        //        for (int i = 0; i < 3; i++)
+        //        {
+        //            g2f g2f_1;
+        //            g2f_1.pos = vg[i].pos;
+        //            //初始化纹理
+        //            g2f_1.tex0 = float2(0.0f, 0.0f);
+        //            ls.Append(g2f_1);
+        //        }
+        //        ls.RestartStrip();
+        //    }
+        //    fixed4 frag(g2f input) :COLOR
+        //    {
+        //        return _LineColor;
+        //    }
+        //    ENDCG
+        //}
     }
 }

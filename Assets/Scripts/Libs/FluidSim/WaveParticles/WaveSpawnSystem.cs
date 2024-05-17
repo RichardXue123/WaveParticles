@@ -110,8 +110,8 @@ namespace OneBitLab.FluidSim
                 EntityManager.SetComponentData( entities[ i ], new Radius { Value = radius } );
             }
             entities.Dispose();
-            int N = 12;
-            int M = 12;
+            int N = 32;
+            int M = 32;
             int L = 5;//限制lambda max
             //k的具体取值还要思考，本意是为了限制半径r的范围//其实还应该限制速度
             //参考20年的论文
@@ -121,41 +121,44 @@ namespace OneBitLab.FluidSim
             float border = 5.0f; //那个plane的大小是这么大
             float minHeight = 0.001f;
             float dk = 2 * (float)Math.PI / L;
-            /*for (int n = -N/2; n <= N /2; n++)
+            for (int n = -N / 2; n < N / 2; n++)
             {
                 float kx = 2 * (float)Math.PI * n / L;
-                for(int m = -M/2; m <= M/2; m++)
+                for (int m = -M / 2; m < M / 2; m++)
                 {
                     float ky = 2 * (float)Math.PI * m / L;
                     float K = (float)Math.Sqrt(kx * kx + ky * ky);
+                    //Debug.Log("K:" + K);
                     if (K < kmin || K > kmax)
                     {
-                        Debug.Log("K out of range:"+ K);
+                        Debug.Log("K out of range:" + K);
                         continue;
                     }
                     dir = math.normalizesafe(new float2(kx, ky)); //计算每个k对应的dir
+                    //Debug.Log("dir:" + dir);
                     float Radius = (float)Math.PI / K;
-                    if(Radius > Rmax)
+                    /*if (Radius > Rmax)
                     {
                         Debug.Log("R out of range:" + Radius);
                         continue;
-                    }
-                    float Height = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k, dir) * 2) * dk / 2;//在24年的论文没有/2，但是20年的有/2
-                    if(Height < minHeight)
+                    }*/
+                    float Height = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(K, dir) * 2) * dk / 2;//在24年的论文没有/2，但是20年的有/2
+                    if (Height < minHeight)
                     {
-                        Debug.Log("Height out of range:"+ Height);
+                        Debug.Log("Height out of range:" + Height);
                         continue;
                     }
+                    //Debug.Log("Height:" + Height);
                     speed = (float)Math.Sqrt(gravity / K);
                     //把创建一层（一类，一个阵列）粒子的过程封装成一个函数
                     GenerateParticles(dir, Height, speed, K, Radius, border);
                 }
-            }*/
+            }
             //swell
-            for (int n = -N / 2; n <= N / 2; n++)
+            for (int n = -N / 2; n < N / 2; n++)
             {
                 float kx = 2 * (float)Math.PI * n / L;
-                for (int m = -M / 2; m <= M / 2; m++)
+                for (int m = -M / 2; m < M / 2; m++)
                 {
                     float ky = 2 * (float)Math.PI * m / L;
                     float K = (float)Math.Sqrt(kx * kx + ky * ky);
@@ -171,7 +174,7 @@ namespace OneBitLab.FluidSim
                         Debug.Log("R out of range:" + Radius);
                         continue;
                     }
-                    float Height = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPGlennSpectrum(k, dir) * 2) * dk / 2;
+                    float Height = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPGlennSpectrum(K, dir) * 2) * dk / 2;
                     if (Height < minHeight)
                     {
                         Debug.Log("Height out of range:" + Height);
@@ -197,73 +200,114 @@ namespace OneBitLab.FluidSim
             NativeQueue<float2> neg_wavepos_queue = new NativeQueue<float2>(Allocator.Temp);
             // neg_wavepos_queue.Enqueue(new float2(0.0f,0.0f));
             //需要处理dirx=0的特殊情况
-            for (int i = 0; i < 200; i++) //200
+            if (dir.x == 0)
             {
-                Entity entity = EntityManager.CreateEntity(m_Archetype);
-                float2 wavepos;
-                if (dir.x==0)
+                Debug.Log("dirx==0");
+                Debug.Log("dir.y:"+ dir.y);
+                for (int i = 0; i < 200; i++) //200
                 {
-                    wavepos = new float2(0, -border + 2 * i * radius / math.abs(dir.y)); //此时diry一定是1
-                    if (wavepos.x > border - radius) //不足够放一个负粒子了
+                    Entity entity = EntityManager.CreateEntity(m_Archetype);
+                    float2 wavepos;
+                    wavepos = new float2(0, -border + 2 * i * radius); //此时dir.y一定是1
+                    if (wavepos.y > border - radius) //不足够放一个负粒子了
                     {
                         break;
                     }
+                    wavepos_queue.Enqueue(wavepos);
+
+                    //负粒子
+                    float2 neg_wavepos;
+                    neg_wavepos = new float2(0, -border + (2 * i + 1) * radius );
+                    neg_wavepos_queue.Enqueue(neg_wavepos);
+
+                    //垂直dir方向的，每差一个radius/2
+                    float Radius = radius * 0.5f;
+                    for (int j = 1; j < 300; j++) //300
+                    {
+                        float2 wavepos3 = new float2(
+                            wavepos.x + Radius * j * dir.y,
+                            wavepos.y - Radius * j * dir.x
+                        );
+                        float2 wavepos4 = new float2(
+                            wavepos.x - Radius * j * dir.y,
+                            wavepos.y + Radius * j * dir.x
+                        );
+                        if (math.abs(wavepos3.x) < border)
+                        {
+                            wavepos_queue.Enqueue(wavepos3);
+                        }
+                        if (math.abs(wavepos4.x) < border)
+                        {
+                            wavepos_queue.Enqueue(wavepos4);
+                        }
+                        float2 neg_wavepos3 = new float2(
+                            neg_wavepos.x + Radius * j * dir.y,
+                            neg_wavepos.y - Radius * j * dir.x
+                        );
+                        if (math.abs(neg_wavepos3.x) < border)
+                            neg_wavepos_queue.Enqueue(neg_wavepos3);
+                        float2 neg_wavepos4 = new float2(
+                            neg_wavepos.x - Radius * j * dir.y,
+                            neg_wavepos.y + Radius * j * dir.x
+                        );
+                        if (math.abs(neg_wavepos4.x) < border)
+                            neg_wavepos_queue.Enqueue(neg_wavepos4);
+                    }
                 }
-                else
+            }
+            else
+            {
+                for (int i = 0; i < 200; i++) //200
                 {
+                    Entity entity = EntityManager.CreateEntity(m_Archetype);
+                    float2 wavepos;
                     wavepos = new float2(-border + 2 * i * radius / math.abs(dir.x), 0); //已经正则化成单位向量了
                     if (wavepos.x > border - radius) //不足够放一个负粒子了
                     {
                         break;
                     }
-                }
-                wavepos_queue.Enqueue(wavepos);
 
-                //负粒子
-                float2 neg_wavepos;
-                if (dir.x == 0)
-                {
-                    neg_wavepos = new float2(0, -border + (2 * i + 1) * radius / math.abs(dir.y));
-                }
-                else
-                {
+                    wavepos_queue.Enqueue(wavepos);
+
+                    //负粒子
+                    float2 neg_wavepos;
                     neg_wavepos = new float2(-border + (2 * i + 1) * radius / math.abs(dir.x), 0);
-                }
-                    
-                neg_wavepos_queue.Enqueue(neg_wavepos);
 
-                //垂直dir方向的，每差一个radius
-                float Radius = radius * 0.5f; //*0.9f
-                for (int j = 1; j < 300; j++) //300
-                {
-                    float2 wavepos3 = new float2(
-                        wavepos.x + Radius * j * dir.y,
-                        wavepos.y - Radius * j * dir.x
-                    );
-                    float2 wavepos4 = new float2(
-                        wavepos.x - Radius * j * dir.y,
-                        wavepos.y + Radius * j * dir.x
-                    );
-                    if (math.abs(wavepos3.y) < border)
+                    neg_wavepos_queue.Enqueue(neg_wavepos);
+
+                    //垂直dir方向的，每差一个radius
+                    float Radius = radius * 0.5f; //*0.9f
+                    for (int j = 1; j < 300; j++) //300
                     {
-                        wavepos_queue.Enqueue(wavepos3);
+                        float2 wavepos3 = new float2(
+                            wavepos.x + Radius * j * dir.y,
+                            wavepos.y - Radius * j * dir.x
+                        );
+                        float2 wavepos4 = new float2(
+                            wavepos.x - Radius * j * dir.y,
+                            wavepos.y + Radius * j * dir.x
+                        );
+                        if (math.abs(wavepos3.y) < border)
+                        {
+                            wavepos_queue.Enqueue(wavepos3);
+                        }
+                        if (math.abs(wavepos4.y) < border)
+                        {
+                            wavepos_queue.Enqueue(wavepos4);
+                        }
+                        float2 neg_wavepos3 = new float2(
+                            neg_wavepos.x + Radius * j * dir.y,
+                            neg_wavepos.y - Radius * j * dir.x
+                        );
+                        if (math.abs(neg_wavepos3.y) < border)
+                            neg_wavepos_queue.Enqueue(neg_wavepos3);
+                        float2 neg_wavepos4 = new float2(
+                            neg_wavepos.x - Radius * j * dir.y,
+                            neg_wavepos.y + Radius * j * dir.x
+                        );
+                        if (math.abs(neg_wavepos4.y) < border)
+                            neg_wavepos_queue.Enqueue(neg_wavepos4);
                     }
-                    if (math.abs(wavepos4.y) < border)
-                    {
-                        wavepos_queue.Enqueue(wavepos4);
-                    }
-                    float2 neg_wavepos3 = new float2(
-                        neg_wavepos.x + Radius * j * dir.y,
-                        neg_wavepos.y - Radius * j * dir.x
-                    );
-                    if (math.abs(neg_wavepos3.y) < border)
-                        neg_wavepos_queue.Enqueue(neg_wavepos3);
-                    float2 neg_wavepos4 = new float2(
-                        neg_wavepos.x - Radius * j * dir.y,
-                        neg_wavepos.y + Radius * j * dir.x
-                    );
-                    if (math.abs(neg_wavepos4.y) < border)
-                        neg_wavepos_queue.Enqueue(neg_wavepos4);
                 }
             }
             //有些属性，比如waveDir，是固定的，就可以不用每次都new？

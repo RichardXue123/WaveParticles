@@ -31,11 +31,11 @@ namespace OneBitLab.FluidSim
         //-------------------------------------------------------------
         protected override void OnUpdate()
         {
- /*           if( !Input.GetMouseButton( 1 ) )
+            if( !Input.GetMouseButton( 1 ) )
             {
                 // Only do work if RMB is pressed
                 return;
-            }*/
+            }
 
             Ray    ray        = ResourceLocatorService.Instance.m_MainCam.ScreenPointToRay( Input.mousePosition );
             float  dist       = math.abs( ray.origin.y / ray.direction.y );

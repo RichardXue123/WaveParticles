@@ -52,7 +52,7 @@ namespace OneBitLab.FluidSim
                                               mipChain: false,
                                               linear: true );
             L = 1.0f;
-            sample_count = 8;
+            sample_count = 10;
             sample_interval = L / sample_count;
             // m_HeightFieldTexes= new NativeArray<Texture2D>( sample_count, Allocator.Temp );
             m_HeightFieldTexes = new Texture2D[sample_count];
@@ -254,13 +254,13 @@ namespace OneBitLab.FluidSim
             // Graphics.Blit (m_TmpHeightFieldRT3, m_HeightFieldRT); 
             //texture叠层
             m_FilterMat.SetFloat( "_WaveParticleRadius", 1*Asample_interval );
-            m_FilterMat.SetFloat( "_DeltaScale", 0.3f );
+            m_FilterMat.SetFloat( "_DeltaScale", 0.5f );
             Graphics.Blit( m_HeightFieldTexes[0], m_TmpHeightFieldRT, m_FilterMat, pass: 0 );
             Graphics.Blit( m_TmpHeightFieldRT, m_TmpHeightFieldRT2, m_FilterMat, pass: 1 );
             for(int i=1;i<sample_count;i++)
             {
                 m_FilterMat.SetFloat( "_WaveParticleRadius", (i+1)*Asample_interval );
-                float Scale = (sample_count - i) * 0.3f / sample_count;
+                float Scale = (sample_count - i) * 0.5f / sample_count;
                 m_FilterMat.SetFloat( "_DeltaScale", Scale);
                 // 半径越小(i越小)，delta越大
                 Graphics.Blit( m_HeightFieldTexes[i], m_TmpHeightFieldRT, m_FilterMat, pass: 0 );

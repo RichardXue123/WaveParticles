@@ -83,12 +83,21 @@ namespace OneBitLab.Services
             double gamaj = 7 * Math.Pow(G * Fetch / U / U, -0.142);
             double sigma = w > wp ? 0.09 : 0.07;
             double r = Math.Exp(-1 * (w - wp) * (w - wp) / (2 * sigma * sigma * wp * wp));
-            double Sjw = (alpha * G * G) / Math.Pow(w, 5) * Math.Exp(-5 / 4 * Math.Pow(wp / w, 4)) * Math.Pow(gamaj, r);
+            double Sjw = (alpha * G * G) / Math.Pow(w, 5) * Math.Exp(-5.0 / 4.0 * Math.Pow(wp / w, 4)) * Math.Pow(gamaj, r);
             //然后计算dir
             double miu = w > wp ? -2.5 : 5.0;
-            double sw = 16 * Math.Pow(w / wp, miu);
+            double sw = 16.0 * Math.Pow(w / wp, miu);
             double theta = Math.Atan2(dir.y, dir.x) - Math.Atan2(windDir.y, windDir.x);
-            double DirSpectrum = MyGammaDouble(sw + 1) / (2 * Math.Sqrt(Math.PI) * MyGammaDouble(sw + 0.5)) * Math.Pow(Math.Cos(theta / 2), 2 * sw);
+            if(Math.Abs(theta)>Math.PI)
+            {
+                theta = 2 * Math.PI - Math.Abs(theta);//正负不重要，因为之后代入cos，但是要保证在-pi~pi范围内
+            }
+            double G1 = MyGammaDouble(sw + 1);
+            double G2 = MyGammaDouble(sw + 0.5);
+            double ds1 = G1 / (2 * Math.Sqrt(Math.PI) * G2);
+            double cost = Math.Cos(theta / 2);
+            double ds2 = Math.Pow(cost, 2 * sw);
+            double DirSpectrum = ds1 * ds2;
             //最后转换到sk
             double Sk = Sjw * DirSpectrum * 0.5 * Math.Sqrt(G / kLength) / kLength;
             return (float)Sk;
@@ -109,6 +118,10 @@ namespace OneBitLab.Services
             double miu = f > fp ? -2.5 : 5.0;
             double sw = 16 * Math.Pow(f / fp, miu);
             double theta = Math.Atan2(dir.y, dir.x) - Math.Atan2(windDir.y, windDir.x);
+            if(Math.Abs(theta)>Math.PI)
+            {
+                theta = 2 * Math.PI - Math.Abs(theta);//正负不重要，因为之后代入cos，但是要保证在-pi~pi范围内
+            }
             double DirSpectrum = MyGammaDouble(sw + 1) / (2 * Math.Sqrt(Math.PI) * MyGammaDouble(sw + 0.5)) * Math.Pow(Math.Cos(theta / 2), 2 * sw);
             //最后转换到sk
             double Sk = Sjg * DirSpectrum / (4 * Math.PI) * Math.Sqrt(G / kLength)/kLength;
