@@ -250,17 +250,18 @@ namespace OneBitLab.FluidSim
             // Graphics.Blit (texture2D, m_HeightFieldRT);
             m_AddMat.SetTexture( "_MainTex2", m_TmpHeightFieldRT3);
             Graphics.Blit (m_TmpHeightFieldRT2, m_HeightFieldRT,m_AddMat,pass:0);
-            
+
             // Graphics.Blit (m_TmpHeightFieldRT3, m_HeightFieldRT); 
             //texture叠层
+            float scale = 0.8f;
             m_FilterMat.SetFloat( "_WaveParticleRadius", 1*Asample_interval );
-            m_FilterMat.SetFloat( "_DeltaScale", 0.5f );
+            m_FilterMat.SetFloat( "_DeltaScale", scale);
             Graphics.Blit( m_HeightFieldTexes[0], m_TmpHeightFieldRT, m_FilterMat, pass: 0 );
             Graphics.Blit( m_TmpHeightFieldRT, m_TmpHeightFieldRT2, m_FilterMat, pass: 1 );
             for(int i=1;i<sample_count;i++)
             {
                 m_FilterMat.SetFloat( "_WaveParticleRadius", (i+1)*Asample_interval );
-                float Scale = (sample_count - i) * 0.5f / sample_count;
+                float Scale = (sample_count - i) * scale / sample_count;
                 m_FilterMat.SetFloat( "_DeltaScale", Scale);
                 // 半径越小(i越小)，delta越大
                 Graphics.Blit( m_HeightFieldTexes[i], m_TmpHeightFieldRT, m_FilterMat, pass: 0 );

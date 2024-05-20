@@ -112,12 +112,12 @@ namespace OneBitLab.FluidSim
             entities.Dispose();
             int N = 32;
             int M = 32;
-            int L = 5;//限制lambda max
+            int L = 10;//限制lambda max
             //k的具体取值还要思考，本意是为了限制半径r的范围//其实还应该限制速度
             //参考20年的论文
             float kmin = (float)Math.PI / L;//0.5f
             float kmax = 30.0f;
-            float Rmax = 5.0f;
+            float Rmax = 2.0f;
             float border = 5.0f; //那个plane的大小是这么大
             float minHeight = 0.001f;
             float dk = 2 * (float)Math.PI / L;
@@ -137,11 +137,11 @@ namespace OneBitLab.FluidSim
                     dir = math.normalizesafe(new float2(kx, ky)); //计算每个k对应的dir
                     //Debug.Log("dir:" + dir);
                     float Radius = (float)Math.PI / K;
-                    /*if (Radius > Rmax)
+                    if (Radius > Rmax)
                     {
                         Debug.Log("R out of range:" + Radius);
                         continue;
-                    }*/
+                    }
                     float Height = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(K, dir) * 2) * dk / 2;//在24年的论文没有/2，但是20年的有/2
                     if (Height < minHeight)
                     {
