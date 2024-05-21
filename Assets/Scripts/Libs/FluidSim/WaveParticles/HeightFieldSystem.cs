@@ -51,9 +51,10 @@ namespace OneBitLab.FluidSim
                                               TextureFormat.RFloat,
                                               mipChain: false,
                                               linear: true );
-            L = 1.0f;
-            sample_count = 10;
+            L = 5.0f;
+            sample_count = 20;
             sample_interval = L / sample_count;
+            Debug.Log("sample_interval" + sample_interval);
             // m_HeightFieldTexes= new NativeArray<Texture2D>( sample_count, Allocator.Temp );
             m_HeightFieldTexes = new Texture2D[sample_count];
             for(int i=0;i<sample_count;i++)
@@ -191,30 +192,24 @@ namespace OneBitLab.FluidSim
                         pixData[ x1y1 ] = pixData[ x1y1 ] + height.Value * dX            * dY;
                     }*/
                     int index=(int)(radius.Value/Asample_interval);
-                    if(index >= Asample_count)
+                    if (index >= Asample_count)
                     {
-                        index = Asample_count-1;
+                        /*index = Asample_count - 1;*/
+                        //半径过大的就不管了
                     }
-                    if(x0y0<0)
+                    else {
+                        NativeArray<float> TmpPixData = pixDatas2[index];
+                        TmpPixData[x0y0] = TmpPixData[x0y0] + height.Value * (1.0f - dX) * (1.0f - dY);
+                        TmpPixData[x1y0] = TmpPixData[x1y0] + height.Value * dX * (1.0f - dY);
+                        TmpPixData[x0y1] = TmpPixData[x0y1] + height.Value * (1.0f - dX) * dY;
+                        TmpPixData[x1y1] = TmpPixData[x1y1] + height.Value * dX * dY;
+                    }
+                    /*if(x0y0<0)
                     {
                         Debug.Log("index x0y0" + x0y0+","+x+","+y);
                         Debug.Log("wPos.Value" + wPos.Value);
-                    }
-                    NativeArray<float> TmpPixData = pixDatas2[index];
-                    //float before1 = TmpPixData[x0y0];
-                    // NativeArray<float> TmpPixData = m_HeightFieldTexes[index].GetRawTextureData<float>();
-                    // pixDatas[index*pLength + x0y0 ] = pixDatas[index*pLength + x0y0 ] + height.Value * ( 1.0f - dX ) * ( 1.0f - dY );
-                    // pixDatas[index*pLength + x1y0 ] = pixDatas[index*pLength + x1y0 ] + height.Value * dX            * ( 1.0f - dY );
-                    // pixDatas[index*pLength + x0y1 ] = pixDatas[index*pLength + x0y1 ] + height.Value * ( 1.0f - dX ) * dY;
-                    // pixDatas[index*pLength + x1y1 ] = pixDatas[index*pLength + x1y1 ] + height.Value * dX            * dY;
-                    TmpPixData[ x0y0 ] = TmpPixData[ x0y0 ] + height.Value * ( 1.0f - dX ) * ( 1.0f - dY );
-                    TmpPixData[ x1y0 ] = TmpPixData[ x1y0 ] + height.Value * dX            * ( 1.0f - dY );
-                    TmpPixData[ x0y1 ] = TmpPixData[ x0y1 ] + height.Value * ( 1.0f - dX ) * dY;
-                    TmpPixData[ x1y1 ] = TmpPixData[ x1y1 ] + height.Value * dX            * dY;
-                    // m_HeightFieldTexes[index].Apply();//改一次提交一次？肯定不行
-                    // pixDatas2[index] = TmpPixData;
-                    // Debug.Log(before1==pixDatas2[index][ x0y0 ]);
-                    // TmpPixData.Dispose();
+                    }*/
+                    
                 } )
                 .WithoutBurst()
                 .Run();
@@ -235,7 +230,7 @@ namespace OneBitLab.FluidSim
             // Debug.Log(before.Equals(pixDatas2[0]));
 
             // Horizontal filter pass
-            m_FilterMat.SetFloat( "_WaveParticleRadius", 0.15f );
+/*            m_FilterMat.SetFloat( "_WaveParticleRadius", 0.15f );
             m_FilterMat.SetFloat( "_DeltaScale", 0.3f );
             Graphics.Blit( m_HeightFieldTex, m_TmpHeightFieldRT, m_FilterMat, pass: 0 );
             // Graphics.Blit( m_TmpHeightFieldRT, m_HeightFieldRT, m_FilterMat, pass: 1 ); 
@@ -249,19 +244,23 @@ namespace OneBitLab.FluidSim
             
             // Graphics.Blit (texture2D, m_HeightFieldRT);
             m_AddMat.SetTexture( "_MainTex2", m_TmpHeightFieldRT3);
-            Graphics.Blit (m_TmpHeightFieldRT2, m_HeightFieldRT,m_AddMat,pass:0);
+            Graphics.Blit (m_TmpHeightFieldRT2, m_HeightFieldRT,m_AddMat,pass:0);*/
 
             // Graphics.Blit (m_TmpHeightFieldRT3, m_HeightFieldRT); 
             //texture叠层
-            float scale = 0.8f;
-            m_FilterMat.SetFloat( "_WaveParticleRadius", 1*Asample_interval );
-            m_FilterMat.SetFloat( "_DeltaScale", scale);
+            float scale = 2.0f;
+            float RR = 1 * Asample_interval;
+            float Scale = 2.0f - 0.4f * RR;
+            m_FilterMat.SetFloat( "_WaveParticleRadius", RR);
+            m_FilterMat.SetFloat( "_DeltaScale", Scale);
             Graphics.Blit( m_HeightFieldTexes[0], m_TmpHeightFieldRT, m_FilterMat, pass: 0 );
             Graphics.Blit( m_TmpHeightFieldRT, m_TmpHeightFieldRT2, m_FilterMat, pass: 1 );
             for(int i=1;i<sample_count;i++)
             {
-                m_FilterMat.SetFloat( "_WaveParticleRadius", (i+1)*Asample_interval );
-                float Scale = (sample_count - i) * scale / sample_count;
+                RR = (i + 1) * Asample_interval;
+                m_FilterMat.SetFloat( "_WaveParticleRadius", RR);
+                //float Scale = (sample_count - i+2) * scale / sample_count;
+                Scale = 2.0f - 0.4f * RR;
                 m_FilterMat.SetFloat( "_DeltaScale", Scale);
                 // 半径越小(i越小)，delta越大
                 Graphics.Blit( m_HeightFieldTexes[i], m_TmpHeightFieldRT, m_FilterMat, pass: 0 );
