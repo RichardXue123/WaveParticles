@@ -28,7 +28,7 @@
             #include "UnityCG.cginc"
             #include "Lighting.cginc"
 
-            RWStructuredBuffer<float4> buffer : register(u1);
+            RWStructuredBuffer<float3> buffer : register(u1);
 
             struct appdata
             {
@@ -75,8 +75,12 @@
                 o.vertex = UnityObjectToClipPos(vertexPos);
                 o.worldViewDir = WorldSpaceViewDir(vertexPos);
                 o.worldPos = mul(unity_ObjectToWorld, vertexPos).xyz;
-                float4 p = float4(1.0, 2.0, 0.321, 0.789);//要输出的值
-                buffer[0] = p;
+                if (o.worldPos.x > -0.1 && o.worldPos.x<0.1 && o.worldPos.z > -0.1 && o.worldPos.z<0.1)
+                {
+                    float3 p = o.worldPos;//要输出的值
+                    buffer[0] = p;
+                }
+                //float3 p = float3(o.uv.x,o.uv.y,0);//要输出的值
                 return o;
             }
 
