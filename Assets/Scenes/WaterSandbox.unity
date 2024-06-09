@@ -2462,7 +2462,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eec20467550fc9b499b0cf5a59d0e4f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_HeightFieldRT: {fileID: 8400000, guid: 06da4165401c1f545985928fd33fb4dc, type: 2}
+  m_HeightFieldRT: {fileID: 8400000, guid: 3b79086c14608ce4d94acbd40a7afa75, type: 2}
   m_MainCam: {fileID: 963194227}
 --- !u!4 &1188651674
 Transform:
@@ -3416,6 +3416,7 @@ GameObject:
   - component: {fileID: 2007071554}
   - component: {fileID: 2007071557}
   - component: {fileID: 2007071553}
+  - component: {fileID: 2007071558}
   m_Layer: 0
   m_Name: Water
   m_TagString: Untagged
@@ -3435,7 +3436,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea7d7495833204790ba1d3a8755397f8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ConversionMode: 0
+  ConversionMode: 1
 --- !u!23 &2007071554
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -3658,6 +3659,18 @@ MonoBehaviour:
       m_Value: 0
   m_SerializedVersion: 1
   m_ConvexRadius_Deprecated: -1
+--- !u!114 &2007071558
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2007071552}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd6ee2e4367760c4287e72645b91457c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &2108209712
 GameObject:
   m_ObjectHideFlags: 0

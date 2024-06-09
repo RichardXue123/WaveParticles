@@ -23,9 +23,12 @@
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
+            #pragma target 4.5
 
             #include "UnityCG.cginc"
             #include "Lighting.cginc"
+
+            RWStructuredBuffer<float4> buffer : register(u1);
 
             struct appdata
             {
@@ -40,7 +43,6 @@
                 float3 worldViewDir : TEXCOORD1;
                 float3 worldPos: TEXCOORD2;
             };
-
             fixed4 _OceanColorShallow;
             fixed4 _OceanColorDeep;
             fixed4 _Specular;
@@ -73,6 +75,8 @@
                 o.vertex = UnityObjectToClipPos(vertexPos);
                 o.worldViewDir = WorldSpaceViewDir(vertexPos);
                 o.worldPos = mul(unity_ObjectToWorld, vertexPos).xyz;
+                float4 p = float4(1.0, 2.0, 0.321, 0.789);//要输出的值
+                buffer[0] = p;
                 return o;
             }
 

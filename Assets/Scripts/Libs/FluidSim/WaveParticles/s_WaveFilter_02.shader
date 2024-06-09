@@ -35,7 +35,7 @@
             return o;
         }
 
-        static float TEXTURE_SIZE = 256.0f;
+        static float TEXTURE_SIZE = 512.0f;
         static float PI = 3.14f;
         //static float WAVE_PARTICLE_RADIUS = 0.15f;
         static float TEXEL_WIDTH_IN_WORLD = 10.0f / TEXTURE_SIZE;
