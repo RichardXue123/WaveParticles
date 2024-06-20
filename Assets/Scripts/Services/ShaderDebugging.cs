@@ -4,6 +4,7 @@ using UnityEngine;
 using System;
 using System.IO;
 using System.Text;
+using OfficeOpenXml;
 
 public class ShaderDebugging : MonoBehaviour
 {
@@ -15,7 +16,15 @@ public class ShaderDebugging : MonoBehaviour
     private string label;
     private MeshRenderer render;
     public float timer = 0f;
+    private float time = 0f;
+    private int row_index = 0;
     StreamWriter stream;
+    //创建excel应用程序
+    FileInfo ExcelFile;
+    ExcelPackage package;
+    ExcelWorksheet worksheet;
+    private string path;
+    private string excel_path;
 
     void Load()
     {
@@ -26,13 +35,20 @@ public class ShaderDebugging : MonoBehaviour
         material = render.material;
 
         /*string path = AppDomain.CurrentDomain.BaseDirectory;*/
-        string path = "D:\\StudyAndWork\\研二\\南湖\\水体模拟\\看代码\\WaveParticles\\Assets\\Scripts\\Log";
+        path = "D:\\StudyAndWork\\研二\\南湖\\水体模拟\\看代码\\WaveParticles\\Assets\\Scripts\\Log";
+        //path = "D:\\StudyAndWork\\研二\\Log";
         //检查上传的物理路径是否存在，不存在则创建
         if (!Directory.Exists(path))
         {
             Directory.CreateDirectory(path);
         }
-        stream = new StreamWriter(path+ "\\" + DateTime.Today.ToString("yyyy-MM-dd") + " log.txt", true, Encoding.Default);
+        stream = new StreamWriter(path+ "\\" + DateTime.Now.ToString("MM-dd HH") + "log.txt", true, Encoding.Default);
+
+        //excel
+        excel_path = path + "\\" + DateTime.Now.ToString("MM-dd HH") + "data.xlsx";
+        ExcelFile = new FileInfo(excel_path);
+        package = new ExcelPackage(ExcelFile);
+        worksheet = package.Workbook.Worksheets.Add(DateTime.Now.ToString("MM-dd HH:mm:ss"));
     }
     // Start is called before the first frame update
     void Start()
@@ -52,13 +68,20 @@ public class ShaderDebugging : MonoBehaviour
         //定时向log里面写入
         //Debug.Log("label"+label);
         timer += Time.deltaTime;
-        if (timer >= 2)// 定时2秒
+        if (timer >= 0.1)// 定时0.1秒 10hz
         {
             //writeLog();
             stream.Write(DateTime.Now.ToString() + ":" + label);
             stream.Write("\r\n");
             stream.Flush();
-            timer = 0f; 
+            timer = 0f;
+
+            //写入excel
+            time += 0.1f;
+            row_index++;
+            worksheet.Cells[row_index, 1].Value = time;
+            worksheet.Cells[row_index, 2].Value = element[0].y;
+            worksheet.Cells[row_index, 3].Value = label;
         }
     }
     private void writeLog()
@@ -87,5 +110,13 @@ public class ShaderDebugging : MonoBehaviour
     {
         buffer.Dispose();
         stream.Close();
+        //关闭应用程序
+        package.Save();
+        Debug.Log("导出Excel成功");
+        //关闭数据表
+/*        wb.Close();
+        myApp.Quit();
+        System.Runtime.InteropServices.Marshal.ReleaseComObject(myApp);
+        myApp = null;*/
     }
 }
