@@ -11,7 +11,11 @@ namespace OneBitLab.Services
         [SerializeField]
         public float2 windDir;
         [SerializeField]
+        public float2 windDir2;
+        [SerializeField]
         public float windSpeed;
+        [SerializeField]
+        public float2 swellDir;
         [SerializeField]
         public float Fetch;
         [SerializeField]
@@ -30,6 +34,8 @@ namespace OneBitLab.Services
         private void OnCreate()
         {
             windDir = new float2(1.0f, 0.0f);
+            windDir2 = new float2(-1.0f, 0.0f);
+            swellDir = new float2(1.0f, 0.0f);
         }
         private double MyGammaDouble(double z)
         {
@@ -72,7 +78,7 @@ namespace OneBitLab.Services
             // Debug.Log("dirSpectrum"+dirSpectrum);
             return phillips*math.abs(dirSpectrum);
         }
-        public float JONSWAPSpectrum(float k, float2 dir)
+        public float JONSWAPSpectrum(float k, float2 dir,int windtype=1)
         {
             float kLength = k;
             //先计算S(w)
@@ -88,6 +94,10 @@ namespace OneBitLab.Services
             double miu = w > wp ? -2.5 : 5.0;
             double sw = 16.0 * Math.Pow(w / wp, miu);
             double theta = Math.Atan2(dir.y, dir.x) - Math.Atan2(windDir.y, windDir.x);
+            if (windtype == 2)
+            {
+                theta = Math.Atan2(dir.y, dir.x) - Math.Atan2(windDir2.y, windDir2.x);
+            }
             if(Math.Abs(theta)>Math.PI)
             {
                 theta = 2 * Math.PI - Math.Abs(theta);//正负不重要，因为之后代入cos，但是要保证在-pi~pi范围内
@@ -107,24 +117,24 @@ namespace OneBitLab.Services
             float kLength = k;
             double w = Math.Sqrt(G * kLength);
             double f = w / (2 * Math.PI);//w=2paif
-            double fp = 1 / Tp;
+            double fp = 1.0 / Tp;
             double gamajg = 9.5 * Math.Pow(Hs, 0.34) * fp;
             double sigma = f > fp ? 0.09 : 0.07;
-            double cc = (1.15 + 0.1688 * gamajg - (0.925) / (1.909 + gamajg));
+            double cc = 1.15 + 0.1688 * gamajg - 0.925/ (1.909 + gamajg);
             double c = (5 * Hs * Hs) / (16 * fp) * Math.Pow(cc, -1);
             double r = Math.Exp(-1 * (f - fp) * (f - fp) / (2 * sigma * sigma * fp * fp));
-            double Sjg = c * Math.Pow(f / fp, -5) * Math.Exp(-5 / 4 * Math.Pow(f / fp, -4)) * Math.Pow(gamajg, r);
+            double Sjg = c * Math.Pow(f / fp, -5) * Math.Exp(-5.0 / 4.0 * Math.Pow(f / fp, -4)) * Math.Pow(gamajg, r);
             //然后计算dir
             double miu = f > fp ? -2.5 : 5.0;
-            double sw = 16 * Math.Pow(f / fp, miu);
-            double theta = Math.Atan2(dir.y, dir.x) - Math.Atan2(windDir.y, windDir.x);
+            double sw = 16.0 * Math.Pow(f / fp, miu);
+            double theta = Math.Atan2(dir.y, dir.x) - Math.Atan2(swellDir.y, swellDir.x);
             if(Math.Abs(theta)>Math.PI)
             {
                 theta = 2 * Math.PI - Math.Abs(theta);//正负不重要，因为之后代入cos，但是要保证在-pi~pi范围内
             }
             double DirSpectrum = MyGammaDouble(sw + 1) / (2 * Math.Sqrt(Math.PI) * MyGammaDouble(sw + 0.5)) * Math.Pow(Math.Cos(theta / 2), 2 * sw);
             //最后转换到sk
-            double Sk = Sjg * DirSpectrum / (4 * Math.PI) * Math.Sqrt(G / kLength)/kLength;
+            double Sk = Sjg * DirSpectrum / (4.0 * Math.PI) * Math.Sqrt(G / kLength) / kLength;
             return (float)Sk;
         }
         //-------------------------------------------------------------

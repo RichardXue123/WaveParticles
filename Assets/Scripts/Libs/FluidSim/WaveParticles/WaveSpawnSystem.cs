@@ -119,7 +119,7 @@ namespace OneBitLab.FluidSim
             float kmax = 75.0f;
             float Rmax = 5.0f;
             float border = 5.0f; //那个plane的大小是这么大
-            float minHeight = 0.002f;
+            float minHeight = 0.0015f;
             float dk = 2 * (float)Math.PI / L;
             for (int n = -N / 2; n < N / 2; n++)
             {
@@ -155,7 +155,7 @@ namespace OneBitLab.FluidSim
                 }
             }
             //swell
-            for (int n = -N / 2; n < N / 2; n++)
+            for (int n = -N / 2; n < -N / 2; n++)
             {
                 float kx = 2 * (float)Math.PI * n / L;
                 for (int m = -M / 2; m < M / 2; m++)

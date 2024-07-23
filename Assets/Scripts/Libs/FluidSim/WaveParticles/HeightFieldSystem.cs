@@ -51,7 +51,7 @@ namespace OneBitLab.FluidSim
                                               TextureFormat.RFloat,
                                               mipChain: false,
                                               linear: true );
-            L = 5.0f;
+            L = 3.0f;
             sample_count = 25;
             sample_interval = L / sample_count;
             Debug.Log("sample_interval" + sample_interval);
@@ -261,7 +261,7 @@ namespace OneBitLab.FluidSim
                 m_FilterMat.SetFloat( "_WaveParticleRadius", RR);
                 //float Scale = (sample_count - i+2) * scale / sample_count;
                 Scale = 2.0f - 0.4f * RR;
-                Scale = 0.0f;
+                //Scale = 0.0f;
                 m_FilterMat.SetFloat( "_DeltaScale", Scale);
                 // 半径越小(i越小)，delta越大
                 Graphics.Blit( m_HeightFieldTexes[i], m_TmpHeightFieldRT, m_FilterMat, pass: 0 );

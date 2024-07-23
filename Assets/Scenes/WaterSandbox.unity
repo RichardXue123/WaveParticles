@@ -1008,7 +1008,13 @@ MonoBehaviour:
   windDir:
     x: 1
     y: 0
+  windDir2:
+    x: -1
+    y: 1
   windSpeed: 30
+  swellDir:
+    x: 1
+    y: 0
   Fetch: 500
   Hs: 3
   Tp: 10
@@ -3671,6 +3677,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd6ee2e4367760c4287e72645b91457c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  timer: 0
 --- !u!1 &2108209712
 GameObject:
   m_ObjectHideFlags: 0
