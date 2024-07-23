@@ -8,6 +8,7 @@ namespace OneBitLab.Services
 {
     public class SpectrumService : SingletonBase<SpectrumService>
     {
+        public enum ModeType { Normal, Wind, Shore };
         [SerializeField]
         public float2 windDir;
         [SerializeField]
@@ -18,6 +19,12 @@ namespace OneBitLab.Services
         public float2 swellDir;
         [SerializeField]
         public float Fetch;
+        [SerializeField]
+        public ModeType TestMode;
+        [SerializeField]
+        public float MaxDepth;
+        [SerializeField]
+        public float MinDepth;
         [SerializeField]
         [Tooltip("有义波高")]
         public float Hs=3.0f;//有义波高，默认3m
@@ -78,11 +85,15 @@ namespace OneBitLab.Services
             // Debug.Log("dirSpectrum"+dirSpectrum);
             return phillips*math.abs(dirSpectrum);
         }
-        public float JONSWAPSpectrum(float k, float2 dir,int windtype=1)
+        public float JONSWAPSpectrum(float k, float2 dir,int windtype=1,float omega=-0.1f)
         {
             float kLength = k;
             //先计算S(w)
             double w = Math.Sqrt(G * kLength);
+            if (omega > 0.0f)
+            {
+                w = omega;
+            }
             float U = windSpeed;
             double alpha = 0.076 * Math.Pow(U * U / Fetch / G, 0.22);
             double wp = 22 * Math.Pow(G * G / U / Fetch, 0.333333);

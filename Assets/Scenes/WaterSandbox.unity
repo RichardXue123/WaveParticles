@@ -1009,13 +1009,16 @@ MonoBehaviour:
     x: 1
     y: 0
   windDir2:
-    x: -1
-    y: 1
+    x: 1
+    y: -2
   windSpeed: 30
   swellDir:
     x: 1
     y: 0
   Fetch: 500
+  TestMode: 2
+  MaxDepth: 1000
+  MinDepth: 100
   Hs: 3
   Tp: 10
 --- !u!4 &482783143
@@ -2103,7 +2106,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
   m_LocalRotation: {x: -0.2598823, y: 0.19870743, z: -0.0547399, w: -0.94338757}
-  m_LocalPosition: {x: 3.3487396, y: 2.2927332, z: -6.483144}
+  m_LocalPosition: {x: 2.92, y: 2.87, z: -6.89}
   m_LocalScale: {x: 1, y: 1, z: -1}
   m_Children: []
   m_Father: {fileID: 654444461}
