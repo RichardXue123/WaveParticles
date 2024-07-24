@@ -1017,8 +1017,8 @@ MonoBehaviour:
     y: 0
   Fetch: 500
   TestMode: 2
-  MaxDepth: 1000
-  MinDepth: 100
+  MaxDepth: 1
+  MinDepth: 0.1
   Hs: 3
   Tp: 10
 --- !u!4 &482783143

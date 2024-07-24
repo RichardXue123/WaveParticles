@@ -89,11 +89,35 @@ namespace OneBitLab.FluidSim
                     {
                         int L = 10;
                         float dk = 2 * (float)Math.PI / L;
+                        float Kmin = (float)Math.PI / L;
                         float h = Depth(wPos.Value.x);
-                        float w = (float)Math.Sqrt(G * k.Value * Math.Tanh(h * k.Value));
-                        float nspeed = w/k.Value;
-                        wSpeed.Value = nspeed;
-                        wH.Value = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k.Value, wDir.Value,1,w) * 2) * dk;
+                        float w ;
+                        if (Math.Sign(wPos.Value.x) > 5.0f)//只修改x<0 的那部分
+                        {
+                            w = (float)Math.Sqrt(G * k.Value);
+                        }
+                        else
+                        {
+                            //w = (float)Math.Sqrt(G * k.Value);
+                            w = (float)Math.Sqrt(G * k.Value * Math.Tanh(h * k.Value));
+                        }
+                        if (Math.Abs(k.Value) > 0.00001f)//防止除0错误
+                        {
+                            float nspeed = w / k.Value;
+                            wSpeed.Value = nspeed;
+                            double omega = Math.Sqrt(G * k.Value);
+                            if (wH.Value > 0)
+                            {
+                                wH.Value = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k.Value, wDir.Value, 1, w) * 2) * dk;
+                            }
+                            if (wH.Value < 0)
+                            {
+                                wH.Value = -1.0f * (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k.Value, wDir.Value, 1, w) * 2) * dk;
+                            }
+                        }
+                        else {
+                            //Debug.Log("Abs(k.Value) < Kmin:"+ k.Value);
+                        }
                     }
 
                 } )
@@ -108,6 +132,9 @@ namespace OneBitLab.FluidSim
             float low = SpectrumService.Instance.MinDepth;
             float slope = (high - low) / (2 * border);//斜率
             float result = low + slope * (x + border);
+            //换个函数
+            float a = (high - low) / 100;
+            result = a * (x + border)* (x + border) + low;
             return result;
         }
         //-------------------------------------------------------------
