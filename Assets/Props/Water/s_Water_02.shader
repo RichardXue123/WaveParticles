@@ -8,9 +8,11 @@
         _LineColor("Line Color", COLOR) = (0,1,0,1)
         _OceanColorShallow("Ocean Color Shallow", Color) = (1, 1, 1, 1)
         _OceanColorDeep("Ocean Color Deep", Color) = (1, 1, 1, 1)
+        _BubblesColor("Bubble Color", Color) = (1, 1, 1, 1)
         _Specular("Specular", Color) = (1, 1, 1, 1)
         _Gloss("Gloss", Range(8.0, 256)) = 20
         _FresnelScale("Fresnel Scale", Range(0, 1)) = 0.5
+        _BubbleScale("Bubble Scale", Range(0, 1)) = 0.5
     }
     SubShader
     {
@@ -48,6 +50,8 @@
             fixed4 _Specular;
             float _Gloss;
             fixed _FresnelScale;
+            fixed _BubbleScale;
+            fixed4 _BubblesColor;
             sampler2D _MainTex;
             float4 _MainTex_ST;
             uniform samplerCUBE _Skybox;
@@ -93,8 +97,21 @@
                 float hT = tex2D(_MainTex, float2(i.uv.x, i.uv.y - eps)).y;
                 float hB = tex2D(_MainTex, float2(i.uv.x, i.uv.y + eps)).y;
 
-                float3 norm = normalize( float3( hL - hR, 2 * eps * 10, hB - hT ) );
+                float3 norm = normalize( float3( hL - hR, 2 * eps * 10, hB - hT ) );//这里的10是和模拟的区域大小有关
                 
+                float3 x1D = tex2D(_MainTex, float2(i.uv.x + eps, i.uv.y));
+                float3 x2D = tex2D(_MainTex, float2(i.uv.x - eps, i.uv.y));
+                float3 z1D = tex2D(_MainTex, float2(i.uv.x, i.uv.y - eps));
+                float3 z2D = tex2D(_MainTex, float2(i.uv.x, i.uv.y + eps));
+
+                //计算泡沫
+                //float3 ddx = (-20 * eps, hL - hR, 0);
+                //float3 ddz = (0, hB - hT, -20 * eps);
+                float3 ddx = (x2D - x1D) / (20 * eps);
+                float3 ddz = (z2D - z1D) / (20 * eps);
+                float jacobian = (1.0f + ddx.x) * (1.0f + ddz.z) - ddx.z * ddz.x;
+                fixed BubblesThreshold = 1.0f;
+                fixed bubbles = saturate(max(0, BubblesThreshold - saturate(jacobian)) * _BubbleScale);
                 /*float3 viewDir = normalize(i.worldViewDir);
                 float3 reflectVec = reflect(-viewDir,norm);
                 float4 reflectCol = texCUBE(_Skybox, reflectVec);
@@ -110,22 +127,31 @@
                 half3 sky = DecodeHDR(rgbm, unity_SpecCube0_HDR);
 
                 //菲涅尔
-                fixed fresnel = saturate(_FresnelScale + (1 - _FresnelScale) * pow(1 - dot(norm, viewDir), 5));
+                //fixed FS = lerp(1-_FresnelScale, _FresnelScale, 1 - i.uv.x);//左边的FS会更大
+                fixed FS = lerp(_FresnelScale+0.5f, _FresnelScale, 1 - i.uv.x);//左边的FS会更大
+                fixed fresnel = saturate(FS + (1 - FS) * pow(1 - dot(norm, viewDir), 5));
 
                 half facing = saturate(dot(viewDir, norm));
-                fixed3 oceanColor = lerp(_OceanColorShallow, _OceanColorDeep, facing);
+                fixed4 DeepColor = lerp(_OceanColorShallow, _OceanColorDeep, 1-i.uv.x);
+                fixed3 oceanColor = lerp(_OceanColorShallow, DeepColor, facing);
+                //fixed3 oceanColor = lerp(_OceanColorShallow, _OceanColorShallow, facing);
 
                 fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.rgb;
+                //泡沫颜色
+                fixed3 bubblesDiffuse = _BubblesColor.rbg  * saturate(dot(lightDir, norm));//* _LightColor0.rgb
+
                 //海洋颜色
                 fixed3 oceanDiffuse = oceanColor * _LightColor0.rgb * saturate(dot(lightDir, norm));
                 fixed3 halfDir = normalize(lightDir + viewDir);
                 fixed3 specular = _LightColor0.rgb * _Specular.rgb * pow(max(0, dot(norm, halfDir)), _Gloss);
 
-                fixed3 diffuse = oceanDiffuse;
+                fixed3 diffuse = lerp(oceanDiffuse, bubblesDiffuse, bubbles);
+                //fixed3 diffuse = oceanDiffuse;
 
                 fixed3 col = ambient + lerp(diffuse, sky, fresnel) + specular;
-
+                //col = DeepColor;
                 return fixed4(col, 1);
+                //return fixed4(bubblesDiffuse, 1);
                 
             }
             ENDCG
