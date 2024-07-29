@@ -1015,8 +1015,8 @@ MonoBehaviour:
   swellDir:
     x: 1
     y: 0
-  Fetch: 500
-  TestMode: 2
+  Fetch: 5000
+  TestMode: 0
   MaxDepth: 0.5
   MinDepth: 0.1
   Hs: 3
