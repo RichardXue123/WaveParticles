@@ -52,7 +52,7 @@ namespace OneBitLab.FluidSim
                                               mipChain: false,
                                               linear: true );
             L = 3.0f;
-            sample_count = 25;
+            sample_count = 30;
             sample_interval = L / sample_count;
             Debug.Log("sample_interval" + sample_interval);
             // m_HeightFieldTexes= new NativeArray<Texture2D>( sample_count, Allocator.Temp );

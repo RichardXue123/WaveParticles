@@ -13,19 +13,20 @@
         _Gloss("Gloss", Range(8.0, 256)) = 20
         _FresnelScale("Fresnel Scale", Range(0, 1)) = 0.5
         _BubbleScale("Bubble Scale", Range(0, 1)) = 0.5
+        [Toggle]_selected("Bubble On", Int) = 0
     }
     SubShader
     {
         Tags { "RenderType"="Opaque" "LightMode" = "ForwardBase"}
         LOD 100
         //Cull Off
-
         Pass
         {
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
             #pragma target 4.5
+            #pragma shader_feature _SELECTED_ON
 
             #include "UnityCG.cginc"
             #include "Lighting.cginc"
@@ -98,20 +99,18 @@
                 float hB = tex2D(_MainTex, float2(i.uv.x, i.uv.y + eps)).y;
 
                 float3 norm = normalize( float3( hL - hR, 2 * eps * 10, hB - hT ) );//这里的10是和模拟的区域大小有关
-                
+#ifdef _SELECTED_ON              
                 float3 x1D = tex2D(_MainTex, float2(i.uv.x + eps, i.uv.y));
                 float3 x2D = tex2D(_MainTex, float2(i.uv.x - eps, i.uv.y));
                 float3 z1D = tex2D(_MainTex, float2(i.uv.x, i.uv.y - eps));
                 float3 z2D = tex2D(_MainTex, float2(i.uv.x, i.uv.y + eps));
-
                 //计算泡沫
-                //float3 ddx = (-20 * eps, hL - hR, 0);
-                //float3 ddz = (0, hB - hT, -20 * eps);
                 float3 ddx = (x2D - x1D) / (20 * eps);
                 float3 ddz = (z2D - z1D) / (20 * eps);
                 float jacobian = (1.0f + ddx.x) * (1.0f + ddz.z) - ddx.z * ddz.x;
                 fixed BubblesThreshold = 1.0f;
                 fixed bubbles = saturate(max(0, BubblesThreshold - saturate(jacobian)) * _BubbleScale);
+#endif
                 /*float3 viewDir = normalize(i.worldViewDir);
                 float3 reflectVec = reflect(-viewDir,norm);
                 float4 reflectCol = texCUBE(_Skybox, reflectVec);
@@ -128,9 +127,12 @@
 
                 //菲涅尔
                 //fixed FS = lerp(1-_FresnelScale, _FresnelScale, 1 - i.uv.x);//左边的FS会更大
+#ifdef _SELECTED_ON
                 fixed FS = lerp(_FresnelScale+0.5f, _FresnelScale, 1 - i.uv.x);//左边的FS会更大
                 fixed fresnel = saturate(FS + (1 - FS) * pow(1 - dot(norm, viewDir), 5));
-
+#else
+                fixed fresnel = saturate(_FresnelScale + (1 - _FresnelScale) * pow(1 - dot(norm, viewDir), 5));
+#endif
                 half facing = saturate(dot(viewDir, norm));
                 fixed4 DeepColor = lerp(_OceanColorShallow, _OceanColorDeep, 1-i.uv.x);
                 fixed3 oceanColor = lerp(_OceanColorShallow, DeepColor, facing);
@@ -145,11 +147,19 @@
                 fixed3 halfDir = normalize(lightDir + viewDir);
                 fixed3 specular = _LightColor0.rgb * _Specular.rgb * pow(max(0, dot(norm, halfDir)), _Gloss);
 
+#ifdef _SELECTED_ON
                 fixed3 diffuse = lerp(oceanDiffuse, bubblesDiffuse, bubbles);
+#else
+                fixed3 diffuse = oceanDiffuse;
+#endif
+                
                 //fixed3 diffuse = oceanDiffuse;
 
                 fixed3 col = ambient + lerp(diffuse, sky, fresnel) + specular;
                 //col = DeepColor;
+//#ifdef _SELECTED_ON
+//                col = (bubbles, bubbles, bubbles);
+//#endif
                 return fixed4(col, 1);
                 //return fixed4(bubblesDiffuse, 1);
                 

@@ -42,10 +42,10 @@ public class ShaderDebugging : MonoBehaviour
         {
             Directory.CreateDirectory(path);
         }
-        stream = new StreamWriter(path+ "\\" + DateTime.Now.ToString("MM-dd HH") + "log.txt", true, Encoding.Default);
+        stream = new StreamWriter(path+ "\\" + DateTime.Now.ToString("MM-dd HH mm") + "log.txt", true, Encoding.Default);
 
         //excel
-        excel_path = path + "\\" + DateTime.Now.ToString("MM-dd HH") + "data.xlsx";
+        excel_path = path + "\\" + DateTime.Now.ToString("MM-dd HH mm") + "data.xlsx";
         ExcelFile = new FileInfo(excel_path);
         package = new ExcelPackage(ExcelFile);
         worksheet = package.Workbook.Worksheets.Add(DateTime.Now.ToString("MM-dd HH:mm:ss"));
