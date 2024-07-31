@@ -128,6 +128,9 @@ namespace OneBitLab.FluidSim
                 {
                     float ky = 2 * (float)Math.PI * m / L;
                     float K = (float)Math.Sqrt(kx * kx + ky * ky);
+/*                    K = 2;
+                    kx = 1;
+                    ky = 2;*/
                     //Debug.Log("K:" + K);
                     if (K < kmin || K > kmax)
                     {
@@ -204,11 +207,11 @@ namespace OneBitLab.FluidSim
             {
                 Debug.Log("dirx==0");
                 Debug.Log("dir.y:"+ dir.y);
-                for (int i = 0; i < 200; i++) //200
+                for (int i = 0; i < 200; i++) //200其实这里就包含了rmin是10/200=0.05
                 {
-                    Entity entity = EntityManager.CreateEntity(m_Archetype);
+                    //Entity entity = EntityManager.CreateEntity(m_Archetype);
                     float2 wavepos;
-                    wavepos = new float2(0, -border + 2 * i * radius); //此时dir.y一定是1
+                    wavepos = new float2(0, -border + 2 * i * radius); //此时dir.y一定是正负1
                     if (wavepos.y > border - radius) //不足够放一个负粒子了
                     {
                         break;
@@ -220,7 +223,7 @@ namespace OneBitLab.FluidSim
                     neg_wavepos = new float2(0, -border + (2 * i + 1) * radius );
                     neg_wavepos_queue.Enqueue(neg_wavepos);
 
-                    //垂直dir方向的，每差一个radius/2
+                    //垂直dir方向的，每差一个radius/2//此时dirx=0，diry=正负1
                     float Radius = radius * 0.5f;
                     for (int j = 1; j < 300; j++) //300
                     {
@@ -259,10 +262,11 @@ namespace OneBitLab.FluidSim
             {
                 for (int i = 0; i < 200; i++) //200
                 {
-                    Entity entity = EntityManager.CreateEntity(m_Archetype);
+                    //Entity entity = EntityManager.CreateEntity(m_Archetype);
                     float2 wavepos;
                     wavepos = new float2(-border + 2 * i * radius / math.abs(dir.x), 0); //已经正则化成单位向量了
-                    if (wavepos.x > border - radius) //不足够放一个负粒子了
+                    if (wavepos.x > (border - radius/ math.abs(dir.x)) ) //不足够放一个负粒子了//是这一行的问题导致的？
+                        //if (wavepos.x > border - radius)
                     {
                         break;
                     }

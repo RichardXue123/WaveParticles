@@ -1076,11 +1076,11 @@ MonoBehaviour:
   windDir2:
     x: 1
     y: -2
-  windSpeed: 30
+  windSpeed: 10
   swellDir:
     x: 0
     y: 0
-  Fetch: 500
+  Fetch: 5000
   TestMode: 0
   MaxDepth: 0.5
   MinDepth: 0.1

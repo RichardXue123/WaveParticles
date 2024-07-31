@@ -30,12 +30,12 @@ namespace OneBitLab.FluidSim
 
                 Gizmos.color = Color.green;
                 Gizmos.DrawWireSphere( center, 0.1f );
-/*                Gizmos.color = Color.red;
-                Gizmos.DrawLine( center, reflectPoint );
-                Gizmos.DrawWireSphere( reflectPoint, 0.02f );
+                Gizmos.color = Color.red;
+                Gizmos.DrawLine(center, reflectPoint);
+                Gizmos.DrawWireSphere(reflectPoint, 0.02f);
                 Gizmos.color = Color.yellow;
-                Gizmos.DrawWireSphere( origin, 0.02f );
-                Gizmos.DrawLine( origin, center );*/
+                Gizmos.DrawWireSphere(origin, 0.02f);
+                Gizmos.DrawLine(origin, center);
                 // Debug.Log( origin );
             }
         }
