@@ -117,7 +117,7 @@ namespace OneBitLab.FluidSim
             //参考20年的论文
             float kmin = (float)Math.PI / L;//0.5f
             float kmax = 75.0f;
-            float Rmax = 5.0f;
+            float Rmax = 3.0f;
             float border = 5.0f; //那个plane的大小是这么大
             float minHeight = 0.0015f;
             float dk = 2 * (float)Math.PI / L;

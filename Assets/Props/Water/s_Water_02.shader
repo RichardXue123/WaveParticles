@@ -7,6 +7,7 @@
         _Skybox ("Skybox", Cube) = "defaulttexture" {}
         _LineColor("Line Color", COLOR) = (0,1,0,1)
         _OceanColorShallow("Ocean Color Shallow", Color) = (1, 1, 1, 1)
+        _ShoreColorShallow("Shore Color Shallow", Color) = (1, 1, 1, 1)
         _OceanColorDeep("Ocean Color Deep", Color) = (1, 1, 1, 1)
         _BubblesColor("Bubble Color", Color) = (1, 1, 1, 1)
         _Specular("Specular", Color) = (1, 1, 1, 1)
@@ -14,6 +15,7 @@
         _FresnelScale("Fresnel Scale", Range(0, 1)) = 0.5
         _BubbleScale("Bubble Scale", Range(0, 1)) = 0.5
         [Toggle]_selected("Bubble On", Int) = 0
+        [Toggle]_switch("Shore", Int) = 0
     }
     SubShader
     {
@@ -27,6 +29,7 @@
             #pragma fragment frag
             #pragma target 4.5
             #pragma shader_feature _SELECTED_ON
+            #pragma shader_feature _SWITCH_ON
 
             #include "UnityCG.cginc"
             #include "Lighting.cginc"
@@ -48,6 +51,7 @@
             };
             fixed4 _OceanColorShallow;
             fixed4 _OceanColorDeep;
+            fixed4 _ShoreColorShallow;
             fixed4 _Specular;
             float _Gloss;
             fixed _FresnelScale;
@@ -127,20 +131,25 @@
 
                 //菲涅尔
                 //fixed FS = lerp(1-_FresnelScale, _FresnelScale, 1 - i.uv.x);//左边的FS会更大
-#ifdef _SELECTED_ON
-                fixed FS = lerp(_FresnelScale+0.5f, _FresnelScale, 1 - i.uv.x);//左边的FS会更大
+#ifdef _SWITCH_ON
+                //fixed FS = lerp(0.4f, 0, 1 - i.uv.x);//左边的FS会更大
+                fixed FS = 0.5f * i.uv.x * i.uv.x;
                 fixed fresnel = saturate(FS + (1 - FS) * pow(1 - dot(norm, viewDir), 5));
 #else
                 fixed fresnel = saturate(_FresnelScale + (1 - _FresnelScale) * pow(1 - dot(norm, viewDir), 5));
 #endif
                 half facing = saturate(dot(viewDir, norm));
-                fixed4 DeepColor = lerp(_OceanColorShallow, _OceanColorDeep, 1-i.uv.x);
+#ifdef _SWITCH_ON
+                float newx = i.uv.x * i.uv.x;
+                fixed4 DeepColor = lerp(_ShoreColorShallow, _OceanColorDeep, 1- i.uv.x);
                 fixed3 oceanColor = lerp(_OceanColorShallow, DeepColor, facing);
-                //fixed3 oceanColor = lerp(_OceanColorShallow, _OceanColorShallow, facing);
+#else
+                fixed3 oceanColor = lerp(_OceanColorShallow, _OceanColorDeep, facing);
+#endif
 
                 fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.rgb;
                 //泡沫颜色
-                fixed3 bubblesDiffuse = _BubblesColor.rbg  * saturate(dot(lightDir, norm));//* _LightColor0.rgb
+                fixed3 bubblesDiffuse = _BubblesColor.rbg * _LightColor0.rgb * saturate(dot(lightDir, norm));//
 
                 //海洋颜色
                 fixed3 oceanDiffuse = oceanColor * _LightColor0.rgb * saturate(dot(lightDir, norm));
@@ -160,6 +169,7 @@
 //#ifdef _SELECTED_ON
 //                col = (bubbles, bubbles, bubbles);
 //#endif
+                //return fixed4(i.uv.x, i.uv.x, i.uv.x, 1);
                 return fixed4(col, 1);
                 //return fixed4(bubblesDiffuse, 1);
                 
