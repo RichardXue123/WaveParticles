@@ -32,7 +32,8 @@ namespace OneBitLab.Services
         [Tooltip("Peak Period")]
         public float Tp = 10.0f;//Tp，默认10s
         const float G = 9.8f;
-        const float A = 15.0f;//73
+        [SerializeField]
+        public float A = 15.0f;//73
 
         static int g = 7;
         static double[] p = {0.99999999999980993, 676.5203681218851, -1259.1392167224028,
@@ -83,7 +84,7 @@ namespace OneBitLab.Services
             //math.normalizesafe
             // Debug.Log("phillips"+phillips);
             // Debug.Log("dirSpectrum"+dirSpectrum);
-            return phillips*math.abs(dirSpectrum);
+            return phillips * math.abs(dirSpectrum);
         }
         public float JONSWAPSpectrum(float k, float2 dir,int windtype=1,float omega=-0.1f)
         {

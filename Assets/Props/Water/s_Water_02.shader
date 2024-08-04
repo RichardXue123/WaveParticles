@@ -14,6 +14,7 @@
         _Gloss("Gloss", Range(8.0, 256)) = 20
         _FresnelScale("Fresnel Scale", Range(0, 1)) = 0.5
         _BubbleScale("Bubble Scale", Range(0, 1)) = 0.5
+        _BubblesThreshold("Bubble Threshold", Range(0, 1)) = 0.5
         [Toggle]_selected("Bubble On", Int) = 0
         [Toggle]_switch("Shore", Int) = 0
     }
@@ -56,6 +57,7 @@
             float _Gloss;
             fixed _FresnelScale;
             fixed _BubbleScale;
+            fixed _BubblesThreshold;
             fixed4 _BubblesColor;
             sampler2D _MainTex;
             float4 _MainTex_ST;
@@ -112,8 +114,7 @@
                 float3 ddx = (x2D - x1D) / (20 * eps);
                 float3 ddz = (z2D - z1D) / (20 * eps);
                 float jacobian = (1.0f + ddx.x) * (1.0f + ddz.z) - ddx.z * ddz.x;
-                fixed BubblesThreshold = 1.0f;
-                fixed bubbles = saturate(max(0, BubblesThreshold - saturate(jacobian)) * _BubbleScale);
+                fixed bubbles = saturate(max(0, _BubblesThreshold - saturate(jacobian)) * _BubbleScale);
 #endif
                 /*float3 viewDir = normalize(i.worldViewDir);
                 float3 reflectVec = reflect(-viewDir,norm);

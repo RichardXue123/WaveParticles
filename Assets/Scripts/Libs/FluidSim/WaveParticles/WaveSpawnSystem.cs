@@ -110,14 +110,14 @@ namespace OneBitLab.FluidSim
                 EntityManager.SetComponentData( entities[ i ], new Radius { Value = radius } );
             }
             entities.Dispose();
-            int N = 100;
-            int M = 100;
-            int L = 10;//限制lambda max
+            int N = 64;
+            int M = 64;
+            int L = 30;//限制lambda max
             //k的具体取值还要思考，本意是为了限制半径r的范围//其实还应该限制速度
             //参考20年的论文
-            float kmin = (float)Math.PI / L;//0.5f
+            float kmin = (float)Math.PI / L;//
             float kmax = 75.0f;
-            float Rmax = 3.0f;
+            float Rmax = 5.0f;
             float border = 5.0f; //那个plane的大小是这么大
             float minHeight = 0.0015f;
             float dk = 2 * (float)Math.PI / L;
@@ -134,7 +134,7 @@ namespace OneBitLab.FluidSim
                     //Debug.Log("K:" + K);
                     if (K < kmin || K > kmax)
                     {
-                        Debug.Log("K out of range:" + K);
+                        Debug.Log("K out of range:" + K);//主要是把0排除出去
                         continue;
                     }
                     dir = math.normalizesafe(new float2(kx, ky)); //计算每个k对应的dir
@@ -145,10 +145,12 @@ namespace OneBitLab.FluidSim
                         Debug.Log("R out of range:" + Radius);
                         continue;
                     }
-                    float Height = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(K, dir) * 2) * dk;//在24年的论文没有/2，但是20年的有/2
+                    float Height = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(K, dir) * 2) * dk;//* dk 在24年的论文没有/2，但是20年的有/2
+                    //float Height = (float)Math.Sqrt(SpectrumService.Instance.PhillipsSpectrum(K, dir) * 2)  / 2;//Phillips谱
+                    minHeight = Math.Min(0.008f * Radius * dk, 0.005f * dk);//自适应剔除的范围，根据半径长度来判断
                     if (Height < minHeight)
                     {
-                        Debug.Log("Height out of range:" + Height);
+                        Debug.Log("Height out of range:" + Height + ",m:" + m + ",n:" + n+",K:"+K);
                         continue;
                     }
                     //Debug.Log("Height:" + Height);

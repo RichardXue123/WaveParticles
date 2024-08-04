@@ -51,8 +51,8 @@ namespace OneBitLab.FluidSim
                                               TextureFormat.RFloat,
                                               mipChain: false,
                                               linear: true );
-            L = 3.0f;
-            sample_count = 30;
+            L = 5.0f;
+            sample_count = 25;
             sample_interval = L / sample_count;
             Debug.Log("sample_interval" + sample_interval);
             // m_HeightFieldTexes= new NativeArray<Texture2D>( sample_count, Allocator.Temp );
@@ -223,8 +223,8 @@ namespace OneBitLab.FluidSim
 
             // We have to wait for all jobs before applying changes to the texture
             Dependency.Complete();
-            m_HeightFieldTex.Apply();
-            m_HeightFieldTex1.Apply();
+/*            m_HeightFieldTex.Apply();
+            m_HeightFieldTex1.Apply();*/
             for(int i=0;i<sample_count;i++)
             {
                 // NativeArray<float> TmpPixData = m_HeightFieldTexes[i].GetRawTextureData<float>();
@@ -258,12 +258,12 @@ namespace OneBitLab.FluidSim
             //texture叠层
             float scale = 2.0f;
             float RR = 0.5f * Asample_interval;
-            float Scale = 2.0f - 0.4f * RR;
+            float Scale = 1.5f - 0.3f * RR;//下面的也要一起改...
             m_FilterMat.SetFloat( "_WaveParticleRadius", RR);
             m_FilterMat.SetFloat( "_DeltaScale", Scale);
             Graphics.Blit( m_HeightFieldTexes[0], m_TmpHeightFieldRT, m_FilterMat, pass: 0 );
             Graphics.Blit( m_TmpHeightFieldRT, m_TmpHeightFieldRT2, m_FilterMat, pass: 1 );
-            for(int i=1;i<sample_count;i++)
+            for(int i=1;i< sample_count; ++i)
             {
                 if (counts[i] == 0)
                 {
@@ -272,8 +272,8 @@ namespace OneBitLab.FluidSim
                 RR = i  * Asample_interval;
                 m_FilterMat.SetFloat( "_WaveParticleRadius", RR);
                 //float Scale = (sample_count - i+2) * scale / sample_count;
-                Scale = 2.0f - 0.6f * RR;
-                //Scale = 0.0f;
+                //Scale = 1.5f - 0.3f * RR;
+                Scale = 0.0f;
                 m_FilterMat.SetFloat( "_DeltaScale", Scale);
                 // 半径越小(i越小)，delta越大
                 Graphics.Blit( m_HeightFieldTexes[i], m_TmpHeightFieldRT, m_FilterMat, pass: 0 );
