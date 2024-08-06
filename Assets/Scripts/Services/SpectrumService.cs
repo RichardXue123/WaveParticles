@@ -61,6 +61,31 @@ namespace OneBitLab.Services
         {
             return 0.05f; 
         }
+        //Donelan-Banner方向拓展
+        float DonelanBannerDirectionalSpreading(float k, float2 dir)
+        {
+            float w = (float)Math.Sqrt(G * k);
+            float betaS=0.5f;
+            float omegap = 0.855f * G / windSpeed;
+            float ratio = w / omegap;
+
+            if (ratio < 0.95f)
+            {
+                betaS = 2.61f * (float)Math.Pow(ratio, 1.3f);
+            }
+            if (ratio >= 0.95f && ratio < 1.6f)
+            {
+                betaS = 2.28f * (float)Math.Pow(ratio, -1.3f);
+            }
+            if (ratio > 1.6f)
+            {
+                float epsilon = -0.4f + 0.8393f * (float)Math.Exp(-0.567f * (float)Math.Log10(ratio * ratio));
+                betaS = (float)Math.Pow(10, epsilon);
+            }
+            float theta = (float)Math.Atan2(dir.y, dir.x) - (float)Math.Atan2(windDir.y, windDir.x);
+
+            return betaS / (float)Math.Max(1e-7f, 2.0f * Math.Tanh(betaS * Math.PI) * Math.Pow(Math.Cosh(betaS * theta), 2));
+        }
         public float PhillipsSpectrum(float k, float2 dir)
         {
             //可以参考之前FFT里面的实现:https://zhuanlan.zhihu.com/p/96811613

@@ -1076,11 +1076,11 @@ MonoBehaviour:
   windDir2:
     x: 1
     y: -2
-  windSpeed: 10
+  windSpeed: 5
   swellDir:
     x: 0
     y: 0
-  Fetch: 1000
+  Fetch: 10000
   TestMode: 0
   MaxDepth: 0.5
   MinDepth: 0.1
@@ -2537,7 +2537,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eec20467550fc9b499b0cf5a59d0e4f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_HeightFieldRT: {fileID: 8400000, guid: 06da4165401c1f545985928fd33fb4dc, type: 2}
+  m_HeightFieldRT: {fileID: 8400000, guid: 3b79086c14608ce4d94acbd40a7afa75, type: 2}
   m_MainCam: {fileID: 963194227}
 --- !u!4 &1188651674
 Transform:

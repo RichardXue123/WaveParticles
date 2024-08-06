@@ -110,9 +110,9 @@ namespace OneBitLab.FluidSim
                 EntityManager.SetComponentData( entities[ i ], new Radius { Value = radius } );
             }
             entities.Dispose();
-            int N = 64;
-            int M = 64;
-            int L = 30;//限制lambda max
+            int N = 50;
+            int M = 50;
+            int L = 10;//限制lambda max
             //k的具体取值还要思考，本意是为了限制半径r的范围//其实还应该限制速度
             //参考20年的论文
             float kmin = (float)Math.PI / L;//
@@ -145,9 +145,9 @@ namespace OneBitLab.FluidSim
                         Debug.Log("R out of range:" + Radius);
                         continue;
                     }
-                    float Height = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(K, dir) * 2) * dk;//* dk 在24年的论文没有/2，但是20年的有/2
+                    float Height = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(K, dir) * 2)*1.5f;//* dk 在24年的论文没有/2，但是20年的有/2
                     //float Height = (float)Math.Sqrt(SpectrumService.Instance.PhillipsSpectrum(K, dir) * 2)  / 2;//Phillips谱
-                    minHeight = Math.Min(0.008f * Radius * dk, 0.005f * dk);//自适应剔除的范围，根据半径长度来判断
+                    minHeight = Math.Min(0.003f * Radius * dk, 0.001f * dk);//自适应剔除的范围，根据半径长度来判断
                     if (Height < minHeight)
                     {
                         Debug.Log("Height out of range:" + Height + ",m:" + m + ",n:" + n+",K:"+K);
@@ -262,11 +262,13 @@ namespace OneBitLab.FluidSim
             }
             else
             {
+                //加一个随机数
+                float dev = m_Rnd.NextFloat(0, 0.5f * radius);
                 for (int i = 0; i < 200; i++) //200
                 {
                     //Entity entity = EntityManager.CreateEntity(m_Archetype);
                     float2 wavepos;
-                    wavepos = new float2(-border + 2 * i * radius / math.abs(dir.x), 0); //已经正则化成单位向量了
+                    wavepos = new float2(-border + dev + 2 * i * radius / math.abs(dir.x), 0); //已经正则化成单位向量了
                     if (wavepos.x > (border - radius/ math.abs(dir.x)) ) //不足够放一个负粒子了//是这一行的问题导致的？
                         //if (wavepos.x > border - radius)
                     {
@@ -277,7 +279,7 @@ namespace OneBitLab.FluidSim
 
                     //负粒子
                     float2 neg_wavepos;
-                    neg_wavepos = new float2(-border + (2 * i + 1) * radius / math.abs(dir.x), 0);
+                    neg_wavepos = new float2(-border + dev + (2 * i + 1) * radius / math.abs(dir.x), 0);
 
                     neg_wavepos_queue.Enqueue(neg_wavepos);
 
