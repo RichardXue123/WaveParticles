@@ -34,7 +34,7 @@ namespace OneBitLab.Services
         const float G = 9.8f;
         [SerializeField]
         public float A = 15.0f;//73
-
+        
         static int g = 7;
         static double[] p = {0.99999999999980993, 676.5203681218851, -1259.1392167224028,
         771.32342877765313, -176.61502916214059, 12.507343278686905,
@@ -111,7 +111,7 @@ namespace OneBitLab.Services
             // Debug.Log("dirSpectrum"+dirSpectrum);
             return phillips * math.abs(dirSpectrum);
         }
-        public float JONSWAPSpectrum(float k, float2 dir,int windtype=1,float omega=-0.1f)
+        public float JONSWAPSpectrum(float k, float2 dir, float omega = -0.1f, float windDir3x = -10f, float windDir3y = -10f)
         {
             float kLength = k;
             //先计算S(w)
@@ -131,9 +131,10 @@ namespace OneBitLab.Services
             double miu = w > wp ? -2.5 : 5.0;
             double sw = 16.0 * Math.Pow(w / wp, miu);
             double theta = Math.Atan2(dir.y, dir.x) - Math.Atan2(windDir.y, windDir.x);
-            if (windtype == 2)
+            if (windDir3x > -9f)
             {
-                theta = Math.Atan2(dir.y, dir.x) - Math.Atan2(windDir2.y, windDir2.x);
+                float2 windDir3 = new float2(windDir3x, windDir3y);
+                theta = Math.Atan2(dir.y, dir.x) - Math.Atan2(windDir3.y, windDir3.x);
             }
             if(Math.Abs(theta)>Math.PI)
             {

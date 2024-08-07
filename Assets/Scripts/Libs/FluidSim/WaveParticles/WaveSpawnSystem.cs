@@ -110,8 +110,8 @@ namespace OneBitLab.FluidSim
                 EntityManager.SetComponentData( entities[ i ], new Radius { Value = radius } );
             }
             entities.Dispose();
-            int N = 50;
-            int M = 50;
+            int N = 40;
+            int M = 40;
             int L = 10;//限制lambda max
             //k的具体取值还要思考，本意是为了限制半径r的范围//其实还应该限制速度
             //参考20年的论文
@@ -145,14 +145,14 @@ namespace OneBitLab.FluidSim
                         Debug.Log("R out of range:" + Radius);
                         continue;
                     }
-                    float Height = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(K, dir) * 2)*1.5f;//* dk 在24年的论文没有/2，但是20年的有/2
+                    float Height = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(K, dir) * 2);//* dk 在24年的论文没有/2，但是20年的有/2
                     //float Height = (float)Math.Sqrt(SpectrumService.Instance.PhillipsSpectrum(K, dir) * 2)  / 2;//Phillips谱
-                    minHeight = Math.Min(0.003f * Radius * dk, 0.001f * dk);//自适应剔除的范围，根据半径长度来判断
+                    /*minHeight = Math.Min(0.003f * Radius * dk, 0.001f * dk);//自适应剔除的范围，根据半径长度来判断
                     if (Height < minHeight)
                     {
-                        Debug.Log("Height out of range:" + Height + ",m:" + m + ",n:" + n+",K:"+K);
-                        continue;
-                    }
+                        //Debug.Log("Height out of range:" + Height + ",m:" + m + ",n:" + n+",K:"+K);
+                        //continue;
+                    }*/
                     //Debug.Log("Height:" + Height);
                     speed = (float)Math.Sqrt(gravity / K);
                     //把创建一层（一类，一个阵列）粒子的过程封装成一个函数

@@ -13,7 +13,19 @@ namespace OneBitLab.FluidSim
         protected override void OnUpdate()
         {
             float dTime = Time.DeltaTime;
-
+            float high = SpectrumService.Instance.MaxDepth;
+            float low = SpectrumService.Instance.MinDepth;
+            float2 Dir1 = SpectrumService.Instance.windDir;
+            float2 Dir2 = SpectrumService.Instance.windDir2;
+            int mode=0;
+            if (SpectrumService.Instance.TestMode == SpectrumService.ModeType.Wind)
+            {
+                mode = 1;
+            }
+            if (SpectrumService.Instance.TestMode == SpectrumService.ModeType.Shore)
+            {
+                mode = 2;
+            }
             Entities
                 .ForEach( ( ref WavePos   wPos,
                             ref WaveHeight wH,
@@ -48,7 +60,7 @@ namespace OneBitLab.FluidSim
                         }
                     }
                     //检查是否需要修改
-                    if (SpectrumService.Instance.TestMode == SpectrumService.ModeType.Wind)
+                    if (mode==1)
                     {
                         if (Math.Sign(originPos.x) != Math.Sign(wPos.Value.x))
                         {
@@ -56,51 +68,35 @@ namespace OneBitLab.FluidSim
                             //float gravity = 9.8f;
                             int L = 10;
                             float dk = 2 * (float)Math.PI / L;
-                            if (Math.Sign(wPos.Value.x) > 0)
-                            {
-/*                                if (Math.Sign(wH.Value) == 0)
-                                    Debug.Log("Sign0");*/
-                                if (wH.Value > 0)
-                                {
-                                    wH.Value = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k.Value, wDir.Value, 2) * 2) * dk;
-                                    //Debug.Log(wH.Value);
-                                }
-                                if (wH.Value < 0)
-                                {
-                                    wH.Value = -1.0f * (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k.Value, wDir.Value, 2) * 2) * dk;//考虑负振幅
-                                }
-
+                            //float2 windDir = WindDir(wPos.Value.x);
+                            
+                            float2 slope = (Dir2 - Dir1) / (2 * border);//斜率
+                            float2 windDir = Dir1 + slope * (wPos.Value.x + border);
+                            if (wH.Value > 0)
+                            { 
+                                 wH.Value = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k.Value, wDir.Value, -0.1f, windDir.x, windDir.y) * 2);
+                                 //Debug.Log(wH.Value);
                             }
-                            else
+                            if (wH.Value < 0)
                             {
-                                //wH.Value = Math.Sign(wH.Value) * SpectrumService.Instance.JONSWAPSpectrum(K, wDir.Value);
-                                if (wH.Value > 0)
-                                {
-                                    wH.Value = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k.Value, wDir.Value) * 2) * dk;//就还是不变
-                                }
-                                if (wH.Value < 0)
-                                {
-                                    wH.Value = -1.0f * (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k.Value, wDir.Value) * 2) * dk;//考虑负振幅
-                                }
+                                 wH.Value = -1.0f * (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k.Value, wDir.Value, -0.1f, windDir.x, windDir.y) * 2);//考虑负振幅
                             }
                         }
                     }
-                    if (SpectrumService.Instance.TestMode == SpectrumService.ModeType.Shore)
+                    if (mode==2)
                     {
                         int L = 10;
                         float dk = 2 * (float)Math.PI / L;
                         float Kmin = (float)Math.PI / L;
-                        float h = Depth(wPos.Value.x);
-                        float w ;
-                        if (Math.Sign(wPos.Value.x) > 5.0f)//只修改x<0 的那部分
-                        {
-                            w = (float)Math.Sqrt(G * k.Value);
-                        }
-                        else
-                        {
-                            //w = (float)Math.Sqrt(G * k.Value);
-                            w = (float)Math.Sqrt(G * k.Value * Math.Tanh(h * k.Value));
-                        }
+                        //float h = Depth(wPos.Value.x);
+                        
+                        //float slope = (high - low) / (2 * border);//斜率
+                        //float h = low + slope * (wPos.Value.x + border);
+                        //换个函数
+                        float a = (high - low) / 100;
+                        float h = a * (wPos.Value.x + border) * (wPos.Value.x + border) + low;
+
+                        float w = (float)Math.Sqrt(G * k.Value * Math.Tanh(h * k.Value));
                         if (Math.Abs(k.Value) > 0.00001f)//防止除0错误
                         {
                             float nspeed = w / k.Value;
@@ -108,11 +104,11 @@ namespace OneBitLab.FluidSim
                             double omega = Math.Sqrt(G * k.Value);
                             if (wH.Value > 0)
                             {
-                                wH.Value = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k.Value, wDir.Value, 1, w) * 2) * dk;
+                                wH.Value = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k.Value, wDir.Value, w) * 2);
                             }
                             if (wH.Value < 0)
                             {
-                                wH.Value = -1.0f * (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k.Value, wDir.Value, 1, w) * 2) * dk;
+                                wH.Value = -1.0f * (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k.Value, wDir.Value, w) * 2);
                             }
                         }
                         else {
@@ -121,9 +117,9 @@ namespace OneBitLab.FluidSim
                     }
 
                 } )
-                .WithoutBurst()
-                .Run();
-                //.ScheduleParallel();
+/*                .WithoutBurst()
+                .Run();*/
+                .ScheduleParallel();
         }
         private float Depth(float x)//根据位置坐标来获取深度信息
         {
@@ -135,6 +131,15 @@ namespace OneBitLab.FluidSim
             //换个函数
             float a = (high - low) / 100;
             result = a * (x + border)* (x + border) + low;
+            return result;
+        }
+        private float2 WindDir(float x)//根据位置坐标来获取风向
+        {
+            float border = 5.0f;
+            float2 Dir1 = SpectrumService.Instance.windDir;
+            float2 Dir2 = SpectrumService.Instance.windDir2;
+            float2 slope = (Dir2 - Dir1) / (2 * border);//斜率
+            float2 result = Dir1 + slope * (x + border);
             return result;
         }
         //-------------------------------------------------------------

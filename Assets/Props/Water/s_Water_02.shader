@@ -134,7 +134,7 @@
                 //fixed FS = lerp(1-_FresnelScale, _FresnelScale, 1 - i.uv.x);//左边的FS会更大
 #ifdef _SWITCH_ON
                 //fixed FS = lerp(0.4f, 0, 1 - i.uv.x);//左边的FS会更大
-                fixed FS = 0.5f * i.uv.x * i.uv.x;
+                fixed FS = 0.1f * i.uv.x * i.uv.x;
                 fixed fresnel = saturate(FS + (1 - FS) * pow(1 - dot(norm, viewDir), 5));
 #else
                 fixed fresnel = saturate(_FresnelScale + (1 - _FresnelScale) * pow(1 - dot(norm, viewDir), 5));
