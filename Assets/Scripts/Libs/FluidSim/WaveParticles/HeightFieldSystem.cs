@@ -275,7 +275,7 @@ namespace OneBitLab.FluidSim
                 m_FilterMat.SetFloat( "_WaveParticleRadius", RR);
                 //float Scale = (sample_count - i+2) * scale / sample_count;
                 Scale = 0.5f - 0.1f * RR;
-                //Scale = 0.0f;
+                Scale = 0.0f;
                 m_FilterMat.SetFloat( "_DeltaScale", Scale);
                 // 半径越小(i越小)，delta越大
                 Graphics.Blit( m_HeightFieldTexes[i], m_TmpHeightFieldRT, m_FilterMat, pass: 0 );

@@ -16,6 +16,8 @@ namespace OneBitLab.Services
         [SerializeField]
         public float windSpeed;
         [SerializeField]
+        public float windSpeed2;
+        [SerializeField]
         public float2 swellDir;
         [SerializeField]
         public float Fetch;
@@ -121,6 +123,14 @@ namespace OneBitLab.Services
                 w = omega;
             }
             float U = windSpeed;
+            double theta = Math.Atan2(dir.y, dir.x) - Math.Atan2(windDir.y, windDir.x);
+            if (windDir3x > -9f)
+            {
+                float2 windDir3 = new float2(windDir3x, windDir3y);
+                theta = Math.Atan2(dir.y, dir.x) - Math.Atan2(windDir3.y, windDir3.x);
+                //以及根据这个更新风速U，
+                U = windSpeed - windDir3y * (windSpeed2 - windSpeed);
+            }
             double alpha = 0.076 * Math.Pow(U * U / Fetch / G, 0.22);
             double wp = 22 * Math.Pow(G * G / U / Fetch, 0.333333);
             double gamaj = 7 * Math.Pow(G * Fetch / U / U, -0.142);
@@ -130,12 +140,6 @@ namespace OneBitLab.Services
             //然后计算dir
             double miu = w > wp ? -2.5 : 5.0;
             double sw = 16.0 * Math.Pow(w / wp, miu);
-            double theta = Math.Atan2(dir.y, dir.x) - Math.Atan2(windDir.y, windDir.x);
-            if (windDir3x > -9f)
-            {
-                float2 windDir3 = new float2(windDir3x, windDir3y);
-                theta = Math.Atan2(dir.y, dir.x) - Math.Atan2(windDir3.y, windDir3.x);
-            }
             if(Math.Abs(theta)>Math.PI)
             {
                 theta = 2 * Math.PI - Math.Abs(theta);//正负不重要，因为之后代入cos，但是要保证在-pi~pi范围内

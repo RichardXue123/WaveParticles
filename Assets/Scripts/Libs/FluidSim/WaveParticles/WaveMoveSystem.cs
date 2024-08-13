@@ -95,13 +95,13 @@ namespace OneBitLab.FluidSim
                         //换个函数
                         float a = (high - low) / 100;
                         float h = a * (wPos.Value.x + border) * (wPos.Value.x + border) + low;
-
+                        //Debug.Log("h:"+ h);
                         float w = (float)Math.Sqrt(G * k.Value * Math.Tanh(h * k.Value));
                         if (Math.Abs(k.Value) > 0.00001f)//防止除0错误
                         {
                             float nspeed = w / k.Value;
                             wSpeed.Value = nspeed;
-                            double omega = Math.Sqrt(G * k.Value);
+                            //double omega = Math.Sqrt(G * k.Value);
                             if (wH.Value > 0)
                             {
                                 wH.Value = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k.Value, wDir.Value, w) * 2);

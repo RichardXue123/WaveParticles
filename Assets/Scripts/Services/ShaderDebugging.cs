@@ -5,18 +5,20 @@ using System;
 using System.IO;
 using System.Text;
 using OfficeOpenXml;
+using UnityEngine.UI;
 
 public class ShaderDebugging : MonoBehaviour
 {
-    //public GameObject target;
+    public GameObject TextUI;
 
     private Material material;
     private ComputeBuffer buffer;
     private Vector3[] element;
     private string label;
     private MeshRenderer render;
-    public float timer = 0f;
+    private float timer = 0f;
     private float time = 0f;
+    private Text m_Text;
     private int row_index = 0;
     StreamWriter stream;
     //创建excel应用程序
@@ -49,6 +51,8 @@ public class ShaderDebugging : MonoBehaviour
         ExcelFile = new FileInfo(excel_path);
         package = new ExcelPackage(ExcelFile);
         worksheet = package.Workbook.Worksheets.Add(DateTime.Now.ToString("MM-dd HH:mm:ss"));
+
+        m_Text = TextUI.GetComponent<Text>();
     }
     // Start is called before the first frame update
     void Start()
@@ -74,14 +78,17 @@ public class ShaderDebugging : MonoBehaviour
             stream.Write(DateTime.Now.ToString() + ":" + label);
             stream.Write("\r\n");
             stream.Flush();
+            //time += 0.1f;
+            time += timer;
             timer = 0f;
 
             //写入excel
-            time += 0.1f;
             row_index++;
             worksheet.Cells[row_index, 1].Value = time;
             worksheet.Cells[row_index, 2].Value = element[0].y;
             worksheet.Cells[row_index, 3].Value = label;
+
+            m_Text.text = time.ToString();
         }
     }
     private void writeLog()
