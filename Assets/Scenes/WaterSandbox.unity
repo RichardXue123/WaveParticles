@@ -1074,17 +1074,17 @@ MonoBehaviour:
     x: 1
     y: 0
   windDir2:
-    x: 0
+    x: 1
     y: -1
-  windSpeed: 20
-  windSpeed2: 20
+  windSpeed: 5
+  windSpeed2: 10
   swellDir:
     x: 0
     y: 0
-  Fetch: 1000
+  Fetch: 10000
   TestMode: 0
-  MaxDepth: 3
-  MinDepth: 0.05
+  MaxDepth: 0.5
+  MinDepth: 0.01
   Hs: 3
   Tp: 10
   A: 0.02
@@ -3428,13 +3428,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1442317938}
-  m_LocalRotation: {x: -0.5, y: 0.5, z: 0.5, w: 0.5}
-  m_LocalPosition: {x: -8.02, y: -0.3, z: 2.5}
-  m_LocalScale: {x: 0.07029, y: 0.053795, z: 0.05}
+  m_LocalRotation: {x: -0.42159474, y: -0.5676776, z: -0.5676776, w: 0.42159474}
+  m_LocalPosition: {x: -5.31, y: -0.3, z: 0.97}
+  m_LocalScale: {x: 0.10010822, y: 0.062813036, z: 0.05}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 18
-  m_LocalEulerAnglesHint: {x: -90, y: 90, z: 0}
+  m_LocalEulerAnglesHint: {x: -90, y: 90, z: -916.8}
 --- !u!33 &1442317940
 MeshFilter:
   m_ObjectHideFlags: 0

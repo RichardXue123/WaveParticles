@@ -90,11 +90,11 @@ namespace OneBitLab.FluidSim
                         float Kmin = (float)Math.PI / L;
                         //float h = Depth(wPos.Value.x);
                         
-                        //float slope = (high - low) / (2 * border);//斜率
-                        //float h = low + slope * (wPos.Value.x + border);
+                        float slope = (high - low) / (2 * border);//斜率
+                        float h = low + slope * (wPos.Value.x + border);
                         //换个函数
-                        float a = (high - low) / 100;
-                        float h = a * (wPos.Value.x + border) * (wPos.Value.x + border) + low;
+                        //float a = (high - low) / 100;
+                        //float h = a * (wPos.Value.x + border) * (wPos.Value.x + border) + low;
                         //Debug.Log("h:"+ h);
                         float w = (float)Math.Sqrt(G * k.Value * Math.Tanh(h * k.Value));
                         if (Math.Abs(k.Value) > 0.00001f)//防止除0错误

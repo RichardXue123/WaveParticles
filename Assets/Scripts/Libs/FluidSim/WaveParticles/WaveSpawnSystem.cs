@@ -110,8 +110,8 @@ namespace OneBitLab.FluidSim
                 EntityManager.SetComponentData( entities[ i ], new Radius { Value = radius } );
             }
             entities.Dispose();
-            int N = 30;
-            int M = 30;
+            int N = 40;
+            int M = 40;
             int L = 10;//限制lambda max
             //k的具体取值还要思考，本意是为了限制半径r的范围//其实还应该限制速度
             //参考20年的论文
@@ -121,10 +121,10 @@ namespace OneBitLab.FluidSim
             float border = 5.0f; //那个plane的大小是这么大
             float minHeight = 0.0015f;
             float dk = 2 * (float)Math.PI / L;
-            for (int n = -N / 2; n < N / 2 + 1; n++)
+            for (int n = -N / 2; n < N / 2 ; n++)
             {
                 float kx = 2 * (float)Math.PI * n / L;
-                for (int m = -M / 2; m < M / 2 + 1; m++)
+                for (int m = -M / 2; m < M / 2 ; m++)
                 {
                     float ky = 2 * (float)Math.PI * m / L;
                     float K = (float)Math.Sqrt(kx * kx + ky * ky);
@@ -139,17 +139,17 @@ namespace OneBitLab.FluidSim
                         continue;
                     }
                     dir = math.normalizesafe(new float2(kx, ky)); //计算每个k对应的dir
-                    //dir = math.normalizesafe(new float2(1.0f, 0.0f));
+                    //dir = math.normalizesafe(new float2(1.0f, -1.0f));
                     //Debug.Log("dir:" + dir);
                     float Radius = (float)Math.PI / K;
-                    //Radius = 0.15f;
+                    //Radius = 0.4f;
                     if (Radius > Rmax)
                     {
                         Debug.Log("R out of range:" + Radius);
                         continue;
                     }
                     float Height = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(K, dir) * 2);//* dk 在24年的论文没有/2，但是20年的有/2
-                    //Height = 0.05f;
+                    //Height = 0.15f;
                     //float Height = (float)Math.Sqrt(SpectrumService.Instance.PhillipsSpectrum(K, dir) * 2)  / 2;//Phillips谱
                     /*minHeight = Math.Min(0.003f * Radius * dk, 0.001f * dk);//自适应剔除的范围，根据半径长度来判断
                     if (Height < minHeight)
@@ -213,7 +213,7 @@ namespace OneBitLab.FluidSim
             {
                 Debug.Log("dirx==0");
                 Debug.Log("dir.y:"+ dir.y);
-                for (int i = 0; i < 200; i++) //200其实这里就包含了rmin是10/200=0.05
+                for (int i = 0; i < 400; i++) //200其实这里就包含了rmin是10/200=0.05
                 {
                     //Entity entity = EntityManager.CreateEntity(m_Archetype);
                     float2 wavepos;
@@ -268,7 +268,7 @@ namespace OneBitLab.FluidSim
             {
                 //加一个随机数
                 float dev = m_Rnd.NextFloat(0, 0.5f * radius);
-                for (int i = 0; i < 200; i++) //200
+                for (int i = 0; i < 400; i++) //200
                 {
                     //Entity entity = EntityManager.CreateEntity(m_Archetype);
                     float2 wavepos;
@@ -289,7 +289,7 @@ namespace OneBitLab.FluidSim
 
                     //垂直dir方向的，每差一个radius
                     float Radius = radius * 0.5f; //*0.9f
-                    for (int j = 1; j < 300; j++) //300
+                    for (int j = 1; j < 500; j++) //300
                     {
                         float2 wavepos3 = new float2(
                             wavepos.x + Radius * j * dir.y,
