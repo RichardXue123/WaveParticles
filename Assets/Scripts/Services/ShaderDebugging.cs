@@ -63,6 +63,7 @@ public class ShaderDebugging : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        /*
         Graphics.ClearRandomWriteTargets();
         material.SetPass(0);
         material.SetBuffer("buffer", buffer);
@@ -90,6 +91,7 @@ public class ShaderDebugging : MonoBehaviour
 
             m_Text.text = time.ToString();
         }
+        */
     }
     private void writeLog()
     {
