@@ -5,9 +5,13 @@ using Unity.Mathematics;
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using Unity.Collections.LowLevel.Unsafe;
 
 namespace OneBitLab.FluidSim
 {
+    unsafe struct Player {
+        public void* ptr;//指向一个nativearray的指针
+    }
     [UpdateAfter( typeof(WaveMoveSystem) )]
     public class HeightFieldSystem : SystemBase
     {
@@ -75,7 +79,7 @@ namespace OneBitLab.FluidSim
         }
 
         //-------------------------------------------------------------
-        protected override void OnUpdate()
+        unsafe protected override void OnUpdate()
         {
             
             NativeArray<float> pixData = m_HeightFieldTex.GetRawTextureData<float>();
@@ -84,7 +88,10 @@ namespace OneBitLab.FluidSim
             NativeArray<int> counts = new NativeArray<int>(sample_count, Allocator.TempJob);
             // NativeArray<float> pixDatas= new NativeArray<float>(pLength*sample_count, Allocator.TempJob);//
             Dictionary<int,NativeArray<float>> pixDatas2=new Dictionary<int,NativeArray<float>>();
-            for(int i=0;i<sample_count;i++)
+            //NativeArray<float>[] pixDatas3 = new NativeArray<float>[sample_count];
+            //void* ptr = NativeArrayUnsafeUtility.GetUnsafePtr(counts);
+            NativeArray<Player> pixDatas4 = new NativeArray<Player>(sample_count, Allocator.TempJob);
+            for (int i=0;i<sample_count;i++)
             {
                 NativeArray<float> TmpPixData = new NativeArray<float>(pLength,Allocator.Temp);
                 TmpPixData = m_HeightFieldTexes[i].GetRawTextureData<float>();
@@ -93,15 +100,18 @@ namespace OneBitLab.FluidSim
                 //     // i * lenght gives the offset of each array because they are the same lenght
                 //     pixDatas[i * pLength + j] = TmpPixData[j];
                 // }
-                if(pixDatas2.ContainsKey(i))
+/*                if(pixDatas2.ContainsKey(i))
                 {
                     pixDatas2[i] = TmpPixData;
                 }
                 else{
                     pixDatas2.Add(i,TmpPixData);
-                }
+                }*/
                 // pixDatas[i*pLength]= m_HeightFieldTexes[i].GetRawTextureData<float>();
-                
+                //pixDatas3[i] = TmpPixData;
+                Player p = new Player();
+                p.ptr = NativeArrayUnsafeUtility.GetUnsafePtr(TmpPixData);
+                pixDatas4[i] = p;
             }
             int Asample_count=sample_count;
             float Asample_interval=sample_interval;
@@ -109,16 +119,17 @@ namespace OneBitLab.FluidSim
             Job
                 .WithCode( () =>
                 {
-                    for( int i = 0; i < pixData.Length; i++ )
+/*                    for( int i = 0; i < pixData.Length; i++ )
                     {
                         pixData[ i ] = 0;
                         pixData1[ i ] = 0;
-                    }
+                    }*/
                     for(int i=0;i<Asample_count;i++)
                     {
-                        NativeArray<float> TmpPixData=pixDatas2[i];
+                        Player p = pixDatas4[i];
+                        float* TmpPixData = (float*)p.ptr;
                         // int length=TmpPixData.Length;
-                        for( int j = 0; j < pLength; j++ )
+                        for ( int j = 0; j < pLength; j++ )
                         {
                             TmpPixData[ j ] = 0;
                             // pixDatas[i * pLength + j] = 0;
@@ -129,9 +140,9 @@ namespace OneBitLab.FluidSim
                         // pixDatas2[i] = pixData;
                     }
                 } )
-                // .Schedule();
-                .WithoutBurst()
-                .Run();
+                .Schedule();
+/*                .WithoutBurst()
+                .Run();*/
             // for(int i=0;i<Asample_count;i++)
             // {
             //     pixDatas2[i] = pixData;
@@ -148,14 +159,15 @@ namespace OneBitLab.FluidSim
             float texelH = 2.0f * border / h;
             // Project all wave particles to texture
             // TODO: split in two jobs, first to create list of all modification (can be parallel)
-            Entities
-                .ForEach( ( in WavePos wPos, in WaveHeight height, in Radius radius) =>
+
+                Entities
+                .ForEach((in WavePos wPos, in WaveHeight height, in Radius radius) =>
                 {
                     // Filter all particles which are beyond the border
                     // Also filter particles in the first and last raws of hegihtmap, 
                     // that helps us reduce three "if" statements during anti-aliasing
-                    if( math.abs( wPos.Value.x ) >= ( border - 5.0f * texelW ) ||
-                        math.abs( wPos.Value.y ) >= ( border - 5.0f * texelH ) )//粒子位置超出了范围就忽略
+                    if (math.abs(wPos.Value.x) >= (border - 5.0f * texelW) ||
+                        math.abs(wPos.Value.y) >= (border - 5.0f * texelH))//粒子位置超出了范围就忽略
                     {
                         return;
                     }
@@ -172,27 +184,13 @@ namespace OneBitLab.FluidSim
                     float dX = xF - x;
                     float dY = yF - y;
                     // Indices 
-                    int x0y0 = x         + y         * w;
-                    int x1y0 = ( x + 1 ) + y         * w;
-                    int x0y1 = x         + ( y + 1 ) * w;
-                    int x1y1 = ( x + 1 ) + ( y + 1 ) * w;
+                    int x0y0 = x + y * w;
+                    int x1y0 = (x + 1) + y * w;
+                    int x0y1 = x + (y + 1) * w;
+                    int x1y1 = (x + 1) + (y + 1) * w;
 
-                    //pixData[ x0y0 ] = ( byte )( pixData[ x0y0 ] + height.Value);
                     // Do manual anti-aliasing for the 2x2 pixel square
-                    /*if(radius.Value>0.2f)
-                    {
-                        pixData1[ x0y0 ] = pixData1[ x0y0 ] + height.Value * ( 1.0f - dX ) * ( 1.0f - dY );
-                        pixData1[ x1y0 ] = pixData1[ x1y0 ] + height.Value * dX            * ( 1.0f - dY );
-                        pixData1[ x0y1 ] = pixData1[ x0y1 ] + height.Value * ( 1.0f - dX ) * dY;
-                        pixData1[ x1y1 ] = pixData1[ x1y1 ] + height.Value * dX            * dY;
-                    }
-                    else{
-                        pixData[ x0y0 ] = pixData[ x0y0 ] + height.Value * ( 1.0f - dX ) * ( 1.0f - dY );
-                        pixData[ x1y0 ] = pixData[ x1y0 ] + height.Value * dX            * ( 1.0f - dY );
-                        pixData[ x0y1 ] = pixData[ x0y1 ] + height.Value * ( 1.0f - dX ) * dY;
-                        pixData[ x1y1 ] = pixData[ x1y1 ] + height.Value * dX            * dY;
-                    }*/
-                    int index=(int)(radius.Value/Asample_interval);
+                    int index = (int)(radius.Value / Asample_interval);
                     if (radius.Value > (index + 0.5f) * Asample_interval)
                     {
                         index++;
@@ -203,9 +201,14 @@ namespace OneBitLab.FluidSim
                         //半径过大的就不管了
                         counts[Asample_count - 1]++;
                     }
-                    else {
+                    else //if(index == targetIndex)
+                    {
+                        //NativeArray<float> TmpPixData = pixDatas2[index];
+                        Player p = pixDatas4[index];
+                        //float[] tmp = new float[pLength];
+                        float* TmpPixData = (float*)p.ptr;
+                        //p.ptr;
                         counts[index]++;
-                        NativeArray<float> TmpPixData = pixDatas2[index];
                         TmpPixData[x0y0] = TmpPixData[x0y0] + height.Value * (1.0f - dX) * (1.0f - dY);
                         TmpPixData[x1y0] = TmpPixData[x1y0] + height.Value * dX * (1.0f - dY);
                         TmpPixData[x0y1] = TmpPixData[x0y1] + height.Value * (1.0f - dX) * dY;
@@ -216,10 +219,12 @@ namespace OneBitLab.FluidSim
                         Debug.Log("index x0y0" + x0y0+","+x+","+y);
                         Debug.Log("wPos.Value" + wPos.Value);
                     }*/
-                    
-                } )
-                .WithoutBurst()
-                .Run();
+
+                })
+                /*.WithoutBurst()
+                .Run();*/
+                .ScheduleParallel();
+            
 
             // We have to wait for all jobs before applying changes to the texture
             Dependency.Complete();
@@ -291,8 +296,9 @@ namespace OneBitLab.FluidSim
             Graphics.CopyTexture(m_TmpHeightFieldRT2,m_HeightFieldRT);
 
             counts.Dispose();
-            // pixData.Dispose();
-            // pixData1.Dispose();
+            pixData.Dispose();
+            pixData1.Dispose();
+            pixDatas4.Dispose();
             // pixDatas.Dispose();//需要dispose
         }
 
