@@ -57,7 +57,7 @@ public class ShaderDebugging : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        Load();
+        //Load();
     }
 
     // Update is called once per frame
@@ -117,11 +117,11 @@ public class ShaderDebugging : MonoBehaviour
     }*/
     private void OnDestroy()
     {
-        buffer.Dispose();
+        /*buffer.Dispose();
         stream.Close();
         //关闭应用程序
         package.Save();
-        Debug.Log("导出Excel成功");
+        Debug.Log("导出Excel成功");*/
         //关闭数据表
 /*        wb.Close();
         myApp.Quit();

@@ -32,6 +32,8 @@ namespace OneBitLab.FluidSim
         private Material      m_AddMat;
         private Texture2D     texture2D;
         private RenderTexture myRT;
+
+        public const float Border = 5.0f;
         //-------------------------------------------------------------
         protected override void OnStartRunning()
         {
