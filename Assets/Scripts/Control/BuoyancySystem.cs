@@ -7,13 +7,14 @@ using Unity.Mathematics;
 using Unity.Rendering;
 using Unity.Transforms;
 using UnityEngine;
+using Unity.Physics.Extensions;
 
 [UpdateBefore(typeof(WaveSubdivideSystem))]
 public class BuoyancySystem : SystemBase
 {
     private RenderTexture m_HeightFieldRT;
-    private RenderTexture m_TmpHeightFieldRT;
     private Texture2D m_HeightFieldTex;
+    private Texture2D m_HeightFieldTex32;
     private Material m_FilterMat;
     NativeArray<float> pixData;
     Mesh waterMesh;
@@ -22,16 +23,18 @@ public class BuoyancySystem : SystemBase
     bool flag1 = true;
     bool objectFlag = true;
 
+    // Vertices used for simulation, in local space.
     public Vector3[] LocalVertices;
+    // Triangles indices of the simulation mesh.
     public int[] TriIndices;
     public int vertexCount;
     public int triangleCount;
 
-    public float finalForceCoefficient = 1.0f;
-    public float finalTorqueCoefficient = 1.0f;
-    public float defaultWaterHeight = 0.0f;
-    public Vector3 defaultWaterNormal = Vector3.up;
-    public Vector3 defaultWaterFlow = Vector3.zero;
+    public float finalForceCoefficient = 1.0f;//Coefficient by which the result force will get multiplied.
+    public float finalTorqueCoefficient = 1.0f;//Coefficient by which the torque force will get multiplied.
+    public float defaultWaterHeight = 0.0f;//World water height to be used when there is no WaterDataProvider present.
+    public Vector3 defaultWaterNormal = Vector3.up;//World water normal to be used when there is no WaterDataProvider present and calculateWaterNormals is enabled.
+    public Vector3 defaultWaterFlow = Vector3.zero;//World water flow to be used when there is no WaterDataProvider present and calculateWaterFlows is enabled.
     public bool calculateWaterHeights = true;
     public bool calculateWaterNormals = true;
     public bool calculateWaterFlows = false;
@@ -52,27 +55,35 @@ public class BuoyancySystem : SystemBase
     private Mesh simulationMesh;
 
 
-    private Vector3[] WorldVertices;
-    private float[] WaterHeights;
-    private Vector3[] WaterNormals;
-    private Vector3[] WaterFlows;
-    public Vector3 RigidbodyAngVel = new Vector3(0, 0, 0);
-    public Vector3 RigidbodyCoM = new Vector3(0, 0, 0);
-    public Vector3 RigidbodyLinearVel = new Vector3(0, 0, 0);
-    private Vector3[] ResultCenters;
-    private float[] ResultAreas;
-    private float[] ResultDistances;
-    public Vector3 ResultForce;
-    public Vector3[] ResultForces;
-    public Vector3[] ResultNormals;
-    public Vector3[] ResultP0s;
+    private Vector3[] WorldVertices;//Simulation vertices coverted to world coordinates.
+    private float[] WaterHeights;//Water surface heights of the current water data provider. Default is used if no water data provider is present.
+    private Vector3[] WaterNormals;//Water normals of the current water data provider. Default is used if no water data provider is present.
+    private Vector3[] WaterFlows;//Water flows of the current water data provider. Default is used if no water data provider is present.
+    public Vector3 RigidbodyAngVel = new Vector3(0, 0, 0);//Angular velocity of the target Rigidbody.
+    public Vector3 RigidbodyCoM = new Vector3(0, 0, 0);//Center of mass of the target Rigidbody.
+    public Vector3 RigidbodyLinearVel = new Vector3(0, 0, 0);//(Linear) velocity of the target Rigidbody.
+    private Vector3[] ResultCenters;//Result triangle centers in world coordinates.
+    private float[] ResultAreas;//Result triangle areas.
+    private float[] ResultDistances;//Result distances to water surface.
+    public Vector3 ResultForce;//Total result force.
+    public Vector3[] ResultForces;//Per-triangle result forces.
+    public Vector3[] ResultNormals;// Result triangle normals. Not equal to the mesh normals.
+    public Vector3[] ResultP0s;//Result sliced triangle vertices.
+    /// <summary>
+    /// Result triangle states.
+    ///     0 - Triangle is under water
+    ///     1 - Triangle is partially under water
+    ///     2 - Triangle is above water
+    ///     3 - Triangle's object is disabled
+    ///     4 - Triangle's object is deleted
+    /// </summary>
     public int[] ResultStates;
-    public Vector3 ResultTorque;
-    public Vector3[] ResultVelocities;
+    public Vector3 ResultTorque;//Result total torque acting on the Rigidbody.
+    public Vector3[] ResultVelocities;//Result velocities at triangle centers.
     public float submergedVolume;
 
     private Vector3 _gravity = new Vector3(0, -9.81f, 0);
-    private Vector3 _worldUpVector = new Vector3(0.0f, 1.0f, 0.0f);
+    private Vector3 _worldUpVector = new Vector3(0.0f, 1.0f, 0.0f);//重力的反方向
     private Matrix4x4 _localToWorldMatrix;
     private MeshFilter _meshFilter;
     private float _simplificationRatio;
@@ -86,29 +97,35 @@ public class BuoyancySystem : SystemBase
         base.OnStartRunning();
 
         m_HeightFieldRT = ResourceLocatorService.Instance.m_HeightFieldRT;
-        m_TmpHeightFieldRT = new RenderTexture(m_HeightFieldRT);
 
         m_HeightFieldTex = new Texture2D(m_HeightFieldRT.width,
                                           m_HeightFieldRT.height,
                                           TextureFormat.RFloat,
                                           mipChain: false,
                                           linear: true);
+        m_HeightFieldTex32 = new Texture2D(m_HeightFieldRT.width,
+                                          m_HeightFieldRT.height,
+                                          TextureFormat.RGBAFloat,
+                                          mipChain: false,
+                                          linear: true);
 
         _worldUpVector = Vector3.Normalize(-Physics.gravity);
 
-        Entities.WithAll<Tag_Player>().ForEach((ref Translation translation, ref Rotation rotation, ref Unity.Physics.PhysicsVelocity velocity, in RenderMesh renderMesh) =>
+        Entities.WithAll<Tag_Player>().ForEach((ref Translation translation, ref Rotation rotation, in RenderMesh renderMesh) =>
         {
+            Debug.Log("Tag_Player");
             Mesh mesh = renderMesh.mesh;
             LocalVertices = mesh.vertices;
             TriIndices = mesh.triangles;
             vertexCount = LocalVertices.Length;
+            Debug.Log("Vertex" + vertexCount);
             triangleCount = TriIndices.Length / 3;
-            //for (int i = 0; i < LocalVertices.Length; i++)
-            //{
-            //    Vector3 vertex = LocalVertices[i];
-            //    Debug.Log("Vertex " + i + ": " + vertex);
-            //    // 在这里可以对顶点进行处理
-            //}
+            for (int i = 0; i < LocalVertices.Length; i++)
+            {
+                Vector3 vertex = LocalVertices[i];
+                Debug.Log("Vertex " + i + ": " + vertex);
+                // 在这里可以对顶点进行处理
+            }
 
             WorldVertices = new Vector3[vertexCount];
             WaterHeights = new float[vertexCount];
@@ -133,7 +150,7 @@ public class BuoyancySystem : SystemBase
 
             for (int i = 0; i < triangleCount; i++)
             {
-                ResultStates[i] = 2;
+                ResultStates[i] = 2;//默认都在水上的状态
             }
         })
         .WithoutBurst()
@@ -161,14 +178,24 @@ public class BuoyancySystem : SystemBase
                 Debug.Log("waterMesh is empty");
                 return;
             }
-
-
+            /*Matrix4x4 matrix= localToWorld.Value;
+            Vector3 localPos = new Vector3(1.0f, 1.0f, 0.5f);
+            Vector3 WorldPos = matrix.MultiplyPoint(localPos);*/
+            //Debug.Log("WorldPos" + WorldPos);//变换前后是一样的
         })
         .WithoutBurst()
         .Run();
 
-        Entities.WithAll<Tag_Player>().ForEach((ref Translation translation, ref Rotation rotation, ref Unity.Physics.PhysicsVelocity velocity, in LocalToWorld localToWorld) =>
+        Entities.WithAll<Tag_Player>().ForEach((
+            ref Translation translation, 
+            ref Rotation rotation, 
+            ref Unity.Physics.PhysicsVelocity velocity, 
+            in Unity.Physics.PhysicsMass physicsMass,
+            //in Rigidbody rigidBody, 
+            in LocalToWorld localToWorld
+            ) =>
         {
+            Debug.Log("Player");
             // 在这里等待之前的作业完成
             Dependency.Complete();
 
@@ -178,20 +205,36 @@ public class BuoyancySystem : SystemBase
             RenderTexture.active = m_HeightFieldRT;
             m_HeightFieldTex.ReadPixels(new Rect(0, 0, m_HeightFieldRT.width, m_HeightFieldRT.height), 0, 0);
             m_HeightFieldTex.Apply();
+            m_HeightFieldTex32.ReadPixels(new Rect(0, 0, m_HeightFieldRT.width, m_HeightFieldRT.height), 0, 0);
+            m_HeightFieldTex32.Apply();
             //NativeArray<float> pixData = m_HeightFieldTex.GetRawTextureData<float>();
             pixData = m_HeightFieldTex.GetRawTextureData<float>();
+            Color color = m_HeightFieldTex32.GetPixel(m_HeightFieldRT.width / 2, m_HeightFieldRT.height / 2);
 
-
+            Debug.Log("color:" + color);
+            Debug.Log("pixData:" + pixData[m_HeightFieldRT.width / 2 + m_HeightFieldRT.width * m_HeightFieldRT.height / 2]);
+            /*            Debug.Log("translation:" + translation.Value);
+                        Debug.Log("physicsMass.Transform.pos:" + physicsMass.Transform.pos);
+            */
             TickWaterObject(
-                new Vector3(translation.Value.x, translation.Value.y, translation.Value.z),
+                new Vector3(translation.Value.x, translation.Value.y, translation.Value.z),//重心位置，暂时就是translation的中心位置
+                //physicsMass.CenterOfMass,
+                //rigidBody.velocity,
                 velocity.Linear,
+                //rigidBody.angularVelocity,
                 velocity.Angular,
+                //transform.localToWorldMatrix,//
                 localToWorld.Value,
                 Physics.gravity
             );
 
             // Apply force and torque
             // 应用力矩和力到速度和角速度
+            //rigidBody.AddForce(ResultForce);
+            //rigidBody.AddTorque(ResultTorque);
+            velocity.ApplyLinearImpulse(physicsMass, ResultForce);
+            velocity.ApplyAngularImpulse(physicsMass, ResultTorque);
+
             // 计算线性加速度：F = ma -> a = F/m
             //if (ResultForce.y/mass > 86) ResultForce.y = 86 * mass;
             float3 linearAcceleration = new float3(ResultForce.x / 100, ResultForce.y, ResultForce.z / 100) / mass;
@@ -465,6 +508,9 @@ public class BuoyancySystem : SystemBase
         //Debug.Log("Vertex " + 0 + ": " + WorldVertices[0]);
 
         //Debug.Log("triangleCount " + 0 + ": " + triangleCount);           832个
+
+        //TODO: 顶点坐标已经变换，可以更新WaterHeights，
+
         for (int i = 0; i < triangleCount; i++)
         {
             CalcTri(i);
@@ -482,7 +528,7 @@ public class BuoyancySystem : SystemBase
         torqueSum.z = 0;
 
         Vector3 resultForce;
-        Vector3 worldCoM = tmpRigidbodyCoM;
+        Vector3 worldCoM = tmpRigidbodyCoM;//世界坐标下的质心位置
         for (int i = 0; i < triangleCount; i++)
         {
             if (ResultStates[i] < 2)
@@ -495,7 +541,7 @@ public class BuoyancySystem : SystemBase
 
                 Vector3 resultCenter = ResultCenters[i];
 
-                Vector3 dir;
+                Vector3 dir;//作用点到质心的距离用来算力矩
                 dir.x = resultCenter.x - worldCoM.x;
                 dir.y = resultCenter.y - worldCoM.y;
                 dir.z = resultCenter.z - worldCoM.z;
@@ -551,7 +597,7 @@ public class BuoyancySystem : SystemBase
         //Debug.Log("d1 " + ": " + d1);
         //Debug.Log("d2 " + ": " + d2);
 
-        //All vertices are above water
+        //All vertices are above water//三个点都在水上
         if (d0 >= 0 && d1 >= 0 && d2 >= 0)
         {
             ResultStates[i] = 2;
@@ -1108,8 +1154,8 @@ public class BuoyancySystem : SystemBase
         // Bake data we want to capture in the job
         int w = m_HeightFieldRT.width;
         int h = m_HeightFieldRT.height;
-        //float border = 5.0f;
-        float border = 160.0f;
+        //float border = 160.0f;
+        float border = HeightFieldSystem.Border;
         float texelW = 2.0f * border / w;
         float texelH = 2.0f * border / h;
         //float texelW = 40.0f / w;
@@ -1128,11 +1174,14 @@ public class BuoyancySystem : SystemBase
         // Texture pixel indices
         int x = (int)xF;
         int y = (int)yF;
-
+        //TODO：严格来讲，应该是周围四个点加权的结果
         int x0y0 = x + y * w;
         //Debug.Log("The height is: " + 160 * pixData[x0y0]);
-        return 32 * 160 * pixData[x0y0];
 
+        float waterHeight = m_HeightFieldTex32.GetPixel(x, y).g;//获取G通道，即y，即高度
+
+        //return 32 * 160 * pixData[x0y0];
+        return waterHeight;
 
         //// 获取mesh的顶点和三角形数据
         //Vector3[] vertices = waterMesh.vertices;
