@@ -8,6 +8,7 @@ using Unity.Rendering;
 using Unity.Transforms;
 using UnityEngine;
 using Unity.Physics.Extensions;
+using UnityEditor;
 
 [UpdateBefore(typeof(WaveSubdivideSystem))]
 public class BuoyancySystem : SystemBase
@@ -38,21 +39,26 @@ public class BuoyancySystem : SystemBase
     public bool calculateWaterHeights = true;
     public bool calculateWaterNormals = true;
     public bool calculateWaterFlows = false;
-    //public float fluidDensity = 1030.0f;
-    public float fluidDensity = 1.03f;
-    public float buoyantForceCoefficient = 1.0f;
-    public float slamForceCoefficient = 1.0f;
-    public float suctionForceCoefficient = 1.0f;
-    public float hydrodynamicForceCoefficient = 1.0f;
+    public float fluidDensity = 1030.0f;
+    //public float fluidDensity = 1.03f;
+    public float buoyantForceCoefficient = 1.0f;// Coefficient by which the the buoyancy forces are multiplied.
+    public float slamForceCoefficient = 1.0f;//Coefficient applied to forces when a face of the object is entering the water.
+    public float suctionForceCoefficient = 1.0f;//Coefficient applied to forces when a face of the object is leaving the water.
+    public float hydrodynamicForceCoefficient = 1.0f;//Coefficient by which the hydrodynamic forces are multiplied..
+    /// <summary>
+    /// Determines to which power the dot product between velocity and triangle normal will be raised.
+    /// Higher values will result in lower hydrodynamic forces for situations in which the triangle is nearly parallel to the
+    /// water velocity. 因为dot的值是小于等于1的，所以这里的power越大，最后阻力就越小
+    /// </summary>
     public float velocityDotPower = 1f;
     public float skinDragCoefficient = 0.1f;
-    public bool convexifyMesh = true;
+/*    public bool convexifyMesh = true;
     public bool simplifyMesh = true;
     public bool weldColocatedVertices = true;
     public int targetTriangleCount = 64;
     public int instanceID;
     public Mesh originalMesh;
-    private Mesh simulationMesh;
+    private Mesh simulationMesh;*/
 
 
     private Vector3[] WorldVertices;//Simulation vertices coverted to world coordinates.
@@ -83,6 +89,7 @@ public class BuoyancySystem : SystemBase
     public float submergedVolume;
 
     private Vector3 _gravity = new Vector3(0, -9.81f, 0);
+    private Vector3 GravityForce;
     private Vector3 _worldUpVector = new Vector3(0.0f, 1.0f, 0.0f);//重力的反方向
     private Matrix4x4 _localToWorldMatrix;
     private MeshFilter _meshFilter;
@@ -91,11 +98,12 @@ public class BuoyancySystem : SystemBase
     private Vector3 _c0, _c1;
     private float _a0, _a1;
     private float _dst0, _dst1;
+
+    private float time;
     //-------------------------------------------------------------
     protected override void OnStartRunning()
     {
         base.OnStartRunning();
-
         m_HeightFieldRT = ResourceLocatorService.Instance.m_HeightFieldRT;
 
         m_HeightFieldTex = new Texture2D(m_HeightFieldRT.width,
@@ -115,17 +123,19 @@ public class BuoyancySystem : SystemBase
         {
             Debug.Log("Tag_Player");
             Mesh mesh = renderMesh.mesh;
+            //mesh改成resource locator的mesh
+            mesh = ResourceLocatorService.Instance.simulationMesh;
             LocalVertices = mesh.vertices;
             TriIndices = mesh.triangles;
             vertexCount = LocalVertices.Length;
             Debug.Log("Vertex" + vertexCount);
             triangleCount = TriIndices.Length / 3;
-            for (int i = 0; i < LocalVertices.Length; i++)
+            /*for (int i = 0; i < LocalVertices.Length; i++)
             {
                 Vector3 vertex = LocalVertices[i];
                 Debug.Log("Vertex " + i + ": " + vertex);
                 // 在这里可以对顶点进行处理
-            }
+            }*/
 
             WorldVertices = new Vector3[vertexCount];
             WaterHeights = new float[vertexCount];
@@ -166,8 +176,8 @@ public class BuoyancySystem : SystemBase
         //float mass = 200000;
         //float mass = 400;
         float mass = 20;
-
-
+        //float time = Time.DeltaTime;
+        time = Time.DeltaTime;
         Entities.WithAll<Tag_Water>().ForEach((in RenderMesh renderMesh, in LocalToWorld localToWorld) =>
         {
             waterMesh = renderMesh.mesh;
@@ -191,11 +201,10 @@ public class BuoyancySystem : SystemBase
             ref Rotation rotation, 
             ref Unity.Physics.PhysicsVelocity velocity, 
             in Unity.Physics.PhysicsMass physicsMass,
-            //in Rigidbody rigidBody, 
+            //in Unity.Physics.MeshCollider mesh, 
             in LocalToWorld localToWorld
             ) =>
         {
-            Debug.Log("Player");
             // 在这里等待之前的作业完成
             Dependency.Complete();
 
@@ -211,14 +220,28 @@ public class BuoyancySystem : SystemBase
             pixData = m_HeightFieldTex.GetRawTextureData<float>();
             Color color = m_HeightFieldTex32.GetPixel(m_HeightFieldRT.width / 2, m_HeightFieldRT.height / 2);
 
-            Debug.Log("color:" + color);
-            Debug.Log("pixData:" + pixData[m_HeightFieldRT.width / 2 + m_HeightFieldRT.width * m_HeightFieldRT.height / 2]);
+            //Debug.Log("color:" + color);
+            //Debug.Log("pixData:" + pixData[m_HeightFieldRT.width / 2 + m_HeightFieldRT.width * m_HeightFieldRT.height / 2]);
             /*            Debug.Log("translation:" + translation.Value);
                         Debug.Log("physicsMass.Transform.pos:" + physicsMass.Transform.pos);
             */
+
+            //重心坐标转化到世界坐标
+
+            Vector3 localCOM = ResourceLocatorService.Instance.COM;// physicsMass.CenterOfMass+ 加上一个offset，换成从resource读取的  ResourceLocatorService.Instance.COM
+            _localToWorldMatrix = localToWorld.Value;
+            Vector3 COM = _localToWorldMatrix.MultiplyPoint(localCOM);
+            Debug.Log("physicsMass.CenterOfMass:" + physicsMass.CenterOfMass);
+            Debug.Log("localCOM:" + localCOM);
+            Debug.Log("ResourceLocatorService.Instance.COM:" + ResourceLocatorService.Instance.COM);
+            Debug.Log("COM:" + COM.x + "," + COM.y + "," + COM.z);
+            Debug.Log("translation:" + translation.Value);
+
+
             TickWaterObject(
-                new Vector3(translation.Value.x, translation.Value.y, translation.Value.z),//重心位置，暂时就是translation的中心位置
+                //new Vector3(translation.Value.x, translation.Value.y, translation.Value.z),//重心位置，暂时就是translation的中心位置
                 //physicsMass.CenterOfMass,
+                COM,
                 //rigidBody.velocity,
                 velocity.Linear,
                 //rigidBody.angularVelocity,
@@ -228,13 +251,37 @@ public class BuoyancySystem : SystemBase
                 Physics.gravity
             );
 
+            //计算重力
+            GravityForce = Physics.gravity / physicsMass.InverseMass;
+
             // Apply force and torque
             // 应用力矩和力到速度和角速度
             //rigidBody.AddForce(ResultForce);
             //rigidBody.AddTorque(ResultTorque);
-            velocity.ApplyLinearImpulse(physicsMass, ResultForce);
-            velocity.ApplyAngularImpulse(physicsMass, ResultTorque);
 
+            //Debug检查一下physicsMass是否有我们所需的全部属性，比如转动惯量。
+            /*Debug.Log("physicsMass.InverseMass:"+ physicsMass.InverseMass);
+            Debug.Log("physicsMass.CenterOfMass:" + physicsMass.CenterOfMass);
+            Debug.Log("physicsMass.InverseInertia:" + physicsMass.InverseInertia);
+            Debug.Log("physicsMass.Transform:" + physicsMass.Transform);*/
+            //Debug.Log("ResultForce:" + ResultForce.y);
+            Debug.Log("ResultTorque" + ResultTorque);
+            //Debug.Log("GravityForce" + GravityForce);
+            if (time > 0.03)
+            {
+                Debug.Log("time:" + time);
+            }
+            
+            velocity.ApplyLinearImpulse(physicsMass, ResultForce * time);//冲量
+            //补充加上重力的冲量
+            velocity.ApplyLinearImpulse(physicsMass, GravityForce * time);
+            velocity.ApplyAngularImpulse(physicsMass, ResultTorque * time);
+            
+
+
+            //time = Time.DeltaTime;
+            //----手动计算----
+            /*
             // 计算线性加速度：F = ma -> a = F/m
             //if (ResultForce.y/mass > 86) ResultForce.y = 86 * mass;
             float3 linearAcceleration = new float3(ResultForce.x / 100, ResultForce.y, ResultForce.z / 100) / mass;
@@ -362,7 +409,7 @@ public class BuoyancySystem : SystemBase
                 //rotation.Value = math.slerp(rotation.Value, targetRotation, 0.02f); // 使用 Slerp 进行平滑插值
             }
             ////velocity.Angular = new float3(0, 1, 0);
-
+            */
         })
             .WithoutBurst()
             .Run();
@@ -485,8 +532,8 @@ public class BuoyancySystem : SystemBase
             }
 
         })
-    .WithoutBurst()
-    .Run();
+        .WithoutBurst()
+        .Run();
 
 
     }
@@ -509,7 +556,7 @@ public class BuoyancySystem : SystemBase
 
         //Debug.Log("triangleCount " + 0 + ": " + triangleCount);           832个
 
-        //TODO: 顶点坐标已经变换，可以更新WaterHeights，
+        //TODO: 顶点坐标已经变换，可以更新WaterHeights（也可以就保持现在这样，用一个函数即可）
 
         for (int i = 0; i < triangleCount; i++)
         {
@@ -556,6 +603,7 @@ public class BuoyancySystem : SystemBase
                 torqueSum.y += crossDirForce.y;
                 torqueSum.z += crossDirForce.z;
             }
+            //TODO:计算水面上的面片受到的风力
         }
 
         ResultForce.x = forceSum.x * finalForceCoefficient;
@@ -724,6 +772,7 @@ public class BuoyancySystem : SystemBase
         force.y = 0;
         force.z = 0;
 
+        //计算重心
         center.x = (p0.x + p1.x + p2.x) * 0.3333333333f;
         center.y = (p0.y + p1.y + p2.y) * 0.3333333333f;
         center.z = (p0.z + p1.z + p2.z) * 0.3333333333f;
@@ -741,43 +790,43 @@ public class BuoyancySystem : SystemBase
         v.y = p2.y - p0.y;
         v.z = p2.z - p0.z;
 
-        Vector3 crossUV;
+        Vector3 crossUV;//向内的法向
         crossUV.x = u.y * v.z - u.z * v.y;
         crossUV.y = u.z * v.x - u.x * v.z;
         crossUV.z = u.x * v.y - u.y * v.x;
 
         float crossMagnitude = crossUV.x * crossUV.x + crossUV.y * crossUV.y + crossUV.z * crossUV.z;
-        if (crossMagnitude < 1e-8f)
+        if (crossMagnitude < 1e-8f)//为了避免下面倒数过大
         {
-            ResultStates[index] = 2;
+            ResultStates[index] = 2;//标记为在水面上
             return;
         }
 
         float invSqrtCrossMag = 1f / Mathf.Sqrt(crossMagnitude);
-        crossMagnitude *= invSqrtCrossMag;
+        crossMagnitude *= invSqrtCrossMag;//单位向量化，总之现在M=sqrt（u×v），就是向量的长度了
 
         Vector3 normal;                             //面片的法线
-        normal.x = crossUV.x * invSqrtCrossMag;
+        normal.x = crossUV.x * invSqrtCrossMag;     //单位向量化
         normal.y = crossUV.y * invSqrtCrossMag;
         normal.z = crossUV.z * invSqrtCrossMag;
         ResultNormals[index] = normal;
 
-        Vector3 p;
+        Vector3 p; //面片重心到刚体重心的距离
         p.x = center.x - RigidbodyCoM.x;
         p.y = center.y - RigidbodyCoM.y;
         p.z = center.z - RigidbodyCoM.z;
 
-        Vector3 crossAngVelP;
+        Vector3 crossAngVelP;//计算刚体坐标系下的速度v=d*w
         crossAngVelP.x = RigidbodyAngVel.y * p.z - RigidbodyAngVel.z * p.y;
         crossAngVelP.y = RigidbodyAngVel.z * p.x - RigidbodyAngVel.x * p.z;
         crossAngVelP.z = RigidbodyAngVel.x * p.y - RigidbodyAngVel.y * p.x;
 
-        Vector3 velocity;
+        Vector3 velocity;//计算三角面片在世界坐标系下的速度
         velocity.x = crossAngVelP.x + RigidbodyLinearVel.x;
         velocity.y = crossAngVelP.y + RigidbodyLinearVel.y;
         velocity.z = crossAngVelP.z + RigidbodyLinearVel.z;
 
-        Vector3 waterNormalVector;
+        Vector3 waterNormalVector;//初始化水面的法向是向上的
         waterNormalVector.x = _worldUpVector.x;
         waterNormalVector.y = _worldUpVector.y;
         waterNormalVector.z = _worldUpVector.z;
@@ -817,7 +866,7 @@ public class BuoyancySystem : SystemBase
             magCross20 = magCross20 < 1e-8f ? 0 : magCross20 / Mathf.Sqrt(magCross20);
 
             float invDoubleArea = 0.5f / area;      //算三个三角形的高度权重
-            float w0 = magCross12 * invDoubleArea;
+            float w0 = magCross12 * invDoubleArea;  //三个三角形的面积的占比
             float w1 = magCross20 * invDoubleArea;
             float w2 = 1.0f - (w0 + w1);
 
@@ -850,12 +899,12 @@ public class BuoyancySystem : SystemBase
                 distanceToSurface =
                     w0 * dist0 +
                     w1 * dist1 +
-                    w2 * dist2;
+                    w2 * dist2;//加权计算
             }
 
             if (calculateWaterFlows)
             {
-                Vector3 wf0 = WaterFlows[i0];
+                Vector3 wf0 = WaterFlows[i0];//默认都是0 还好 
                 Vector3 wf1 = WaterFlows[i1];
                 Vector3 wf2 = WaterFlows[i2];
 
@@ -869,7 +918,7 @@ public class BuoyancySystem : SystemBase
             ResultStates[index] = 2;
             return;
         }
-
+        //上面计算的结果，就得到了面片的速度和面积
         ResultVelocities[index] = velocity;
         ResultAreas[index] = area;
 
@@ -881,15 +930,15 @@ public class BuoyancySystem : SystemBase
         if (buoyantForceCoefficient > 1e-5f)
         {
             float gravity = _gravity.y;
-            float dotNormalWaterNormal = Vector3.Dot(normal, waterNormalVector);
+            float dotNormalWaterNormal = Vector3.Dot(normal, waterNormalVector);//面片的法线和水面法线
 
-            float volume = densityArea * distanceToSurface * dotNormalWaterNormal;
-            submergedVolume -= densityArea * distanceToSurface * dotNormalWaterNormal;
+            float volume = densityArea * distanceToSurface * dotNormalWaterNormal;//rho * s * h * 投影
+            submergedVolume -= densityArea * distanceToSurface * dotNormalWaterNormal;//但是实际上是没用的？最多是public出去给人看看
 
             //Debug.Log("The volume is: " + volume);                        //正负浮动,会一直变大
             //Debug.Log("The submergedVolume is: " + submergedVolume);      //会一直变大，很可怕
 
-            float bfc = volume * gravity * buoyantForceCoefficient;
+            float bfc = volume * gravity * buoyantForceCoefficient;//rho * s * h * 投影 * g
             //Debug.Log("The bfc is: " + bfc);
 
             buoyantForce.x = waterNormalVector.x * bfc;
@@ -904,7 +953,7 @@ public class BuoyancySystem : SystemBase
             buoyantForce.z = 0;
         }
 
-
+        //上面算完了浮力，接下来是粘滞力和阻力
         Vector3 dynamicForce;
         dynamicForce.x = 0;
         dynamicForce.y = 0;
@@ -916,12 +965,12 @@ public class BuoyancySystem : SystemBase
             float invSqrtVelMag = 1f / Mathf.Sqrt(velocityMagnitude);
             velocityMagnitude *= invSqrtVelMag;
 
-            Vector3 velocityNormalized;
+            Vector3 velocityNormalized;//单位向量
             velocityNormalized.x = velocity.x * invSqrtVelMag;
             velocityNormalized.y = velocity.y * invSqrtVelMag;
             velocityNormalized.z = velocity.z * invSqrtVelMag;
 
-            float dotNormVel = Vector3.Dot(normal, velocityNormalized);
+            float dotNormVel = Vector3.Dot(normal, velocityNormalized);//面片的法向和速度点乘。如果是垂直的话，就是0。同向就是1。可以理解成水的阻力。
 
             if (hydrodynamicForceCoefficient > 0.001f)
             {
@@ -939,13 +988,13 @@ public class BuoyancySystem : SystemBase
             if (skinDragCoefficient > 1e-4f)
             {
                 float absDot = dotNormVel < 0 ? -dotNormVel : dotNormVel;
-                float c = -(1.0f - absDot) * skinDragCoefficient * densityArea;
+                float c = -(1.0f - absDot) * skinDragCoefficient * densityArea;//如果越垂直，那么粘滞力就越大
                 dynamicForce.x += velocity.x * c;
                 dynamicForce.y += velocity.y * c;
                 dynamicForce.z += velocity.z * c;
             }
 
-            float dfc = hydrodynamicForceCoefficient * (dotNormVel > 0 ? slamForceCoefficient : suctionForceCoefficient);
+            float dfc = hydrodynamicForceCoefficient * (dotNormVel > 0 ? slamForceCoefficient : suctionForceCoefficient);//进入还是离开水
             dynamicForce.x *= dfc;
             dynamicForce.y *= dfc;
             dynamicForce.z *= dfc;
@@ -1222,7 +1271,8 @@ public class BuoyancySystem : SystemBase
         int w = m_HeightFieldRT.width;
         int h = m_HeightFieldRT.height;
 
-        float border = 160.0f;
+        //float border = 160.0f;
+        float border = HeightFieldSystem.Border;
         float texelW = 2.0f * border / w;
         float texelH = 2.0f * border / h;
 
@@ -1253,10 +1303,15 @@ public class BuoyancySystem : SystemBase
         //float heightDown = m_HeightFieldTex.GetPixel(x, y - 1 < 0 ? 0 : y - 1).r;
         //float heightUp = m_HeightFieldTex.GetPixel(x, y + 1 >= h ? h - 1 : y + 1).r;
 
-        float heightLeft = 32 * 160 * pixData[x0y0];
+        /*float heightLeft = 32 * 160 * pixData[x0y0];
         float heightRight = 32 * 160 * pixData[x1y0];
         float heightDown = 32 * 160 * pixData[x0y1];
-        float heightUp = 32 * 160 * pixData[x1y1];
+        float heightUp = 32 * 160 * pixData[x1y1];*/
+
+        float heightLeft = m_HeightFieldTex32.GetPixel(x - 1 < 0 ? 0 : x - 1, y).g;
+        float heightRight = m_HeightFieldTex32.GetPixel(x + 1 >= w ? w - 1 : x + 1, y).g;
+        float heightDown = m_HeightFieldTex32.GetPixel(x, y - 1 < 0 ? 0 : y - 1).g;
+        float heightUp = m_HeightFieldTex32.GetPixel(x, y + 1 >= h ? h - 1 : y + 1).g;
 
         float dx = (heightRight - heightLeft);
         float dz = (heightUp - heightDown);
@@ -1265,7 +1320,8 @@ public class BuoyancySystem : SystemBase
         // 创建两个三维向量，对应于相邻高度差
         Vector3 tangent = new Vector3(2 * texelW, dx, 0.0f);
         Vector3 bitangent = new Vector3(0.0f, dz, 2 * texelH);
-
+        //Debug.Log("tangent: " + tangent);
+        //Debug.Log("bitangent: " + bitangent);
         // 计算两个向量的叉积，得到法线向量
         Vector3 normal = Vector3.Cross(tangent, bitangent).normalized;
 
@@ -1273,7 +1329,8 @@ public class BuoyancySystem : SystemBase
 
         // 将法线的范围从[-1,1]调整到[0,1]
         //normal = (normal + Vector3.one) * 0.5f;
-        //Debug.Log("The normal is: " + normal);
+        if(normal.y<0)
+           Debug.Log("The normal is: " + normal);
 
         return normal;
         //return new Vector3(0, 1, 0);

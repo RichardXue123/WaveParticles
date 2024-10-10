@@ -49,6 +49,10 @@ namespace OneBitLab.FluidSim
         private float                                  m_TimeToDrop = 1000000.0f;
         private Random                                 m_Rnd        = new Random( seed: 1234 );
         private EntityQuery                            m_AllEntitiesQuery;
+        
+        private int N;
+        private int M;
+        private int L;
 
         //-------------------------------------------------------------
         public void AddExternalDependency(JobHandle newDependency)
@@ -110,9 +114,14 @@ namespace OneBitLab.FluidSim
                 EntityManager.SetComponentData( entities[ i ], new Radius { Value = radius } );
             }
             entities.Dispose();
-            int N = 40;
+            /*int N = 40;
             int M = 40;
-            int L = 10;//限制lambda max
+            int L = 10;//限制lambda max*/
+
+            N = ResourceLocatorService.Instance.N;
+            M = ResourceLocatorService.Instance.M;
+            L = ResourceLocatorService.Instance.L;
+
             //k的具体取值还要思考，本意是为了限制半径r的范围//其实还应该限制速度
             //参考20年的论文
             float kmin = (float)Math.PI / L;//
