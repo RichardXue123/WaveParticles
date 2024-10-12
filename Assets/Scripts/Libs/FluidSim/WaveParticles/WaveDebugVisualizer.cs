@@ -1,5 +1,7 @@
-﻿using Unity.Collections;
+﻿using OneBitLab.Services;
+using Unity.Collections;
 using Unity.Entities;
+using UnityEditor;
 using UnityEngine;
 
 namespace OneBitLab.FluidSim
@@ -8,7 +10,7 @@ namespace OneBitLab.FluidSim
     {
         //-------------------------------------------------------------
         private NativeQueue<WaveDebugData> m_DebugQueue;
-
+        private Vector3 WorldCenterOfMass = Vector3.zero;
         //-------------------------------------------------------------
         private void Awake()
         {
@@ -18,7 +20,11 @@ namespace OneBitLab.FluidSim
         //-------------------------------------------------------------
         private void OnDrawGizmos()
         {
-            if( !m_DebugQueue.IsCreated ) return;
+            WorldCenterOfMass = ResourceLocatorService.Instance.WorldCOM;
+            Gizmos.color = Color.red;
+            Gizmos.DrawSphere(WorldCenterOfMass, 0.05f);
+            Handles.Label(WorldCenterOfMass, "WorldCoM");
+            if ( !m_DebugQueue.IsCreated ) return;
             // Debug.Log( "hi" );
             while( m_DebugQueue.TryDequeue( out WaveDebugData data ) )
             {
@@ -38,6 +44,7 @@ namespace OneBitLab.FluidSim
                 Gizmos.DrawLine(origin, center);
                 // Debug.Log( origin );
             }
+            
         }
 
         //-------------------------------------------------------------

@@ -14,6 +14,9 @@ namespace OneBitLab.Services
         [UnityEngine.Tooltip("Local Center of Mass")]
         public float3 COM = new float3(0, 0, 0);
         public Mesh simulationMesh;
+        public Vector3 WorldCOM = new Vector3(0, 0, 0);
+        public Vector3 inertiaTensor = new Vector3(0, 0, 0);
+        public Quaternion intertiaRotation;
         //-------------------------------------------------------------
     }
 }

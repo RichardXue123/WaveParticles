@@ -6,6 +6,7 @@ using UnityEditor;
 
 public class MeshSave : MonoBehaviour
 {
+    public string mesh_name;
 #if UNITY_EDITOR
     public void SaveAsset()
     {
@@ -15,7 +16,8 @@ public class MeshSave : MonoBehaviour
             Mesh mesh = this.GetComponent<MeshFilter>().mesh;
             if (mesh != null)
             {
-                AssetDatabase.CreateAsset(mesh, "Assets/提取_" + name + ".asset");
+                //AssetDatabase.CreateAsset(mesh, "Assets/Models/提取_" + name + "63.asset");
+                AssetDatabase.CreateAsset(mesh, "Assets/Models/提取_" + mesh_name + ".asset");
                 Debug.Log("提取mesh成功：提取_" + name);
             }
             else

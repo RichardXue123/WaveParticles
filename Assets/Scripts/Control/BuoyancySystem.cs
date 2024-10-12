@@ -119,7 +119,11 @@ public class BuoyancySystem : SystemBase
 
         _worldUpVector = Vector3.Normalize(-Physics.gravity);
 
-        Entities.WithAll<Tag_Player>().ForEach((ref Translation translation, ref Rotation rotation, in RenderMesh renderMesh) =>
+        Entities.WithAll<Tag_Player>().ForEach((
+            ref Translation translation, 
+            ref Rotation rotation, 
+            ref Unity.Physics.PhysicsMass physicsMass, 
+            in RenderMesh renderMesh) =>
         {
             Debug.Log("Tag_Player");
             Mesh mesh = renderMesh.mesh;
@@ -136,6 +140,17 @@ public class BuoyancySystem : SystemBase
                 Debug.Log("Vertex " + i + ": " + vertex);
                 // 在这里可以对顶点进行处理
             }*/
+
+            //转动惯量可以初始化,不会发生变化的
+            /*
+            Debug.Log("physicsMass.InverseInertia:" + physicsMass.InverseInertia);
+            Debug.Log("physicsMass.InertiaOrientation:" + physicsMass.InertiaOrientation);
+            physicsMass.InertiaOrientation = ResourceLocatorService.Instance.intertiaRotation;
+            Vector3 inertia= ResourceLocatorService.Instance.inertiaTensor;
+            physicsMass.InverseInertia = new Vector3(1.0f/ inertia.x, 1.0f / inertia.y, 1.0f / inertia.z);
+            Debug.Log("new InverseInertia:" + physicsMass.InverseInertia);
+            Debug.Log("new InertiaOrientation:" + physicsMass.InertiaOrientation);
+            */
 
             WorldVertices = new Vector3[vertexCount];
             WaterHeights = new float[vertexCount];
@@ -200,7 +215,7 @@ public class BuoyancySystem : SystemBase
             ref Translation translation, 
             ref Rotation rotation, 
             ref Unity.Physics.PhysicsVelocity velocity, 
-            in Unity.Physics.PhysicsMass physicsMass,
+            ref Unity.Physics.PhysicsMass physicsMass,
             //in Unity.Physics.MeshCollider mesh, 
             in LocalToWorld localToWorld
             ) =>
@@ -229,14 +244,16 @@ public class BuoyancySystem : SystemBase
             //重心坐标转化到世界坐标
 
             Vector3 localCOM = ResourceLocatorService.Instance.COM;// physicsMass.CenterOfMass+ 加上一个offset，换成从resource读取的  ResourceLocatorService.Instance.COM
+            //physicsMass.CenterOfMass = localCOM;
             _localToWorldMatrix = localToWorld.Value;
             Vector3 COM = _localToWorldMatrix.MultiplyPoint(localCOM);
-            Debug.Log("physicsMass.CenterOfMass:" + physicsMass.CenterOfMass);
-            Debug.Log("localCOM:" + localCOM);
+            
+            /*Debug.Log("localCOM:" + localCOM);
             Debug.Log("ResourceLocatorService.Instance.COM:" + ResourceLocatorService.Instance.COM);
             Debug.Log("COM:" + COM.x + "," + COM.y + "," + COM.z);
-            Debug.Log("translation:" + translation.Value);
+            Debug.Log("translation:" + translation.Value);*/
 
+            ResourceLocatorService.Instance.WorldCOM = COM;
 
             TickWaterObject(
                 //new Vector3(translation.Value.x, translation.Value.y, translation.Value.z),//重心位置，暂时就是translation的中心位置
@@ -267,10 +284,10 @@ public class BuoyancySystem : SystemBase
             //Debug.Log("ResultForce:" + ResultForce.y);
             Debug.Log("ResultTorque" + ResultTorque);
             //Debug.Log("GravityForce" + GravityForce);
-            if (time > 0.03)
+/*            if (time > 0.03)
             {
                 Debug.Log("time:" + time);
-            }
+            }*/
             
             velocity.ApplyLinearImpulse(physicsMass, ResultForce * time);//冲量
             //补充加上重力的冲量
@@ -1329,8 +1346,8 @@ public class BuoyancySystem : SystemBase
 
         // 将法线的范围从[-1,1]调整到[0,1]
         //normal = (normal + Vector3.one) * 0.5f;
-        if(normal.y<0)
-           Debug.Log("The normal is: " + normal);
+/*        if(normal.y<0)
+           Debug.Log("The normal is: " + normal);*/
 
         return normal;
         //return new Vector3(0, 1, 0);
