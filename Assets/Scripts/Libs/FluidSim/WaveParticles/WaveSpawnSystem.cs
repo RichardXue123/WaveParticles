@@ -25,7 +25,7 @@ namespace OneBitLab.FluidSim
         public float m_windSpeed = 0.5f;
         private const float gravity = 9.8f;
 
-        private const int c_StartEntitiesCount = 0; //300
+        private const int c_StartEntitiesCount = 50000; //300
 
         public static float s_WaveParticleMinHeight = c_WaveParticleHeight;
 
@@ -93,11 +93,22 @@ namespace OneBitLab.FluidSim
             float2 dir = math.normalizesafe(m_Rnd.NextFloat2(-1.0f, 1.0f));
             for (int i = 0; i < c_StartEntitiesCount; i++)
             {
-                // float2 dir = math.normalizesafe(m_Rnd.NextFloat2( -1.0f, 1.0f ));
-                float height =
-                    2 * (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k, dir) * 2);
+                int n = 48;
+                int l = 10;
+                float mink = 2 * (float)Math.PI / l;
+                float maxk = 2 * (float)Math.PI * n / l;
+
+                dir = math.normalizesafe(m_Rnd.NextFloat2( -1.0f, 1.0f ));
+                //float height = 2 * (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(k, dir) * 2);
                 // height = -0.05f;
-                height = 0.3f;
+                //float height = 0.1f;
+                k = m_Rnd.NextFloat(mink, maxk);
+                kLength = math.max(0.001f, k);
+                speed = (float)Math.Sqrt(gravity / kLength);
+                radius = (float)Math.PI / kLength;
+                //float height = (float)Math.Sqrt(SpectrumService.Instance.PhillipsSpectrum(kLength, dir) * 2) / 2;
+                //float height = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(kLength, dir) * 2);
+                float height = 0.005f;
                 // if(m_Rnd.NextBool())
                 // {
                 //     radius = 0.15f;
@@ -110,7 +121,7 @@ namespace OneBitLab.FluidSim
                 EntityManager.SetComponentData( entities[ i ], new WaveHeight {Value = height} );
                 EntityManager.SetComponentData( entities[ i ], new WaveSpeed {Value = speed} );
                 EntityManager.SetComponentData( entities[ i ], new WaveDir { Value = dir } );
-                EntityManager.SetComponentData( entities[ i ], new WaveVector { Value = k } );
+                EntityManager.SetComponentData( entities[ i ], new WaveVector { Value = kLength } );
                 EntityManager.SetComponentData( entities[ i ], new Radius { Value = radius } );
             }
             entities.Dispose();
