@@ -25,7 +25,7 @@ namespace OneBitLab.FluidSim
         public float m_windSpeed = 0.5f;
         private const float gravity = 9.8f;
 
-        private const int c_StartEntitiesCount = 50000; //300
+        private const int c_StartEntitiesCount = 1000000; //300
 
         public static float s_WaveParticleMinHeight = c_WaveParticleHeight;
 
@@ -107,8 +107,8 @@ namespace OneBitLab.FluidSim
                 speed = (float)Math.Sqrt(gravity / kLength);
                 radius = (float)Math.PI / kLength;
                 //float height = (float)Math.Sqrt(SpectrumService.Instance.PhillipsSpectrum(kLength, dir) * 2) / 2;
-                //float height = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(kLength, dir) * 2);
-                float height = 0.005f;
+                float height = (float)Math.Sqrt(SpectrumService.Instance.JONSWAPSpectrum(kLength, dir) * 2);
+                //float height = 0.005f;
                 // if(m_Rnd.NextBool())
                 // {
                 //     radius = 0.15f;
