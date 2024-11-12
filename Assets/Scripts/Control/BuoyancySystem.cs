@@ -189,12 +189,21 @@ public class BuoyancySystem : SystemBase
         .WithoutBurst()
         .Run();
 
+        LOA = ResourceLocatorService.Instance.LOA;//船长
+        B = ResourceLocatorService.Instance.B;//船宽
+        AF = ResourceLocatorService.Instance.AF;//正面投影面积
+        AL = ResourceLocatorService.Instance.AL;//侧面投影面积
+        C = ResourceLocatorService.Instance.C;//侧面投影型心到船舶中心的距离
+        HC = ResourceLocatorService.Instance.HC;//侧面投影型心到水线的距离
+        AOD = ResourceLocatorService.Instance.AOD;//甲板上物体的侧投影面积——测不出来，默认是0
+        HBR = ResourceLocatorService.Instance.HBR;//最上层建筑物到水面的距离——测不出来，默认是船舶高度
+
 
         CLF1 = b10 + b11 * AL / (LOA * B) + b12 * C / LOA;
         CLF2 = b20 + b21 * B / LOA + b22 * HC / LOA + b23 * AOD / (LOA * LOA) + b24 * AF / (B * B);
 
         CYM1 = gama10 + gama11 * AF / (LOA * B);
-        CYM2 = gama20 + gama21 * AOD / (LOA * LOA);
+        CYM2 = gama20 + gama21 * AOD / (LOA * LOA); 
     }
 
     protected override void OnUpdate()
