@@ -691,7 +691,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!65 &138306511
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -4054,6 +4054,15 @@ MonoBehaviour:
   WorldCOM: {x: -0.76, y: -0.70000017, z: -1.0099999}
   inertiaTensor: {x: 1249.717, y: 247.67654, z: 1388.8024}
   intertiaRotation: {x: 0.0062060724, y: 0.003914045, z: 0.0008761656, w: 0.99997276}
+  LOA: 4.91
+  B: 2.06
+  AF: 1.5346
+  AL: 2.6183
+  C: 0.5445
+  HC: 0.3174
+  AOD: 0
+  HBR: 0.987
+  applyWind: 0
 --- !u!4 &1188651674
 Transform:
   m_ObjectHideFlags: 0
@@ -4541,7 +4550,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!65 &1331367600
 BoxCollider:
   m_ObjectHideFlags: 0

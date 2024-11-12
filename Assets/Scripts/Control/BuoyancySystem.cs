@@ -107,6 +107,8 @@ public class BuoyancySystem : SystemBase
 
     private float time;
     private float TotalTime;
+
+    private bool applyWind = false;
     //-------------------------------------------------------------
     protected override void OnStartRunning()
     {
@@ -198,6 +200,7 @@ public class BuoyancySystem : SystemBase
         AOD = ResourceLocatorService.Instance.AOD;//甲板上物体的侧投影面积——测不出来，默认是0
         HBR = ResourceLocatorService.Instance.HBR;//最上层建筑物到水面的距离——测不出来，默认是船舶高度
 
+        applyWind = ResourceLocatorService.Instance.applyWind;
 
         CLF1 = b10 + b11 * AL / (LOA * B) + b12 * C / LOA;
         CLF2 = b20 + b21 * B / LOA + b22 * HC / LOA + b23 * AOD / (LOA * LOA) + b24 * AF / (B * B);
@@ -696,7 +699,11 @@ public class BuoyancySystem : SystemBase
         ResultForce.y = forceSum.y * finalForceCoefficient;
         ResultForce.z = forceSum.z * finalForceCoefficient;
 
-        ResultForce += windForceSum;
+        if (applyWind)
+        {
+            ResultForce += windForceSum;
+        }
+        
         //Debug.Log("windForceSum"+ windForceSum);
         //Debug.Log("ResultForce" + ResultForce);
 
@@ -704,7 +711,11 @@ public class BuoyancySystem : SystemBase
         ResultTorque.y = torqueSum.y * finalTorqueCoefficient;
         ResultTorque.z = torqueSum.z * finalTorqueCoefficient;
 
-        ResultTorque += windTorqueSum;
+        if (applyWind)
+        {
+            ResultTorque += windTorqueSum;
+        }
+        
         //Debug.Log("windTorqueSum" + windTorqueSum);
         //Debug.Log("ResultTorque" + ResultTorque);
     }

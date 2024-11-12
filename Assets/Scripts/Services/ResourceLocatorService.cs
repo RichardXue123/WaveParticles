@@ -27,6 +27,8 @@ namespace OneBitLab.Services
         public float HC = 0.3174f;//侧面投影型心到水线的距离
         public float AOD = 0;//甲板上物体的侧投影面积——测不出来，默认是0
         public float HBR = 0.987f;//最上层建筑物到水面的距离——测不出来，默认是船舶高度
+
+        public bool applyWind = false;
         //-------------------------------------------------------------
     }
 }
