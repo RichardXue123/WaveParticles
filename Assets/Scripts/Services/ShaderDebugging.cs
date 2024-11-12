@@ -57,13 +57,13 @@ public class ShaderDebugging : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        Load();
+        //Load();
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        /*
         Graphics.ClearRandomWriteTargets();
         material.SetPass(0);
         material.SetBuffer("buffer", buffer);
@@ -91,7 +91,7 @@ public class ShaderDebugging : MonoBehaviour
 
             m_Text.text = time.ToString();
         }
-        
+        */
     }
     private void writeLog()
     {
@@ -117,11 +117,13 @@ public class ShaderDebugging : MonoBehaviour
     }*/
     private void OnDestroy()
     {
+        /*
         buffer.Dispose();
         stream.Close();
         //关闭应用程序
         package.Save();
         Debug.Log("导出Excel成功");
+        */
         //关闭数据表
 /*        wb.Close();
         myApp.Quit();

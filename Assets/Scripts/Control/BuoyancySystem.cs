@@ -40,6 +40,7 @@ public class BuoyancySystem : SystemBase
     public bool calculateWaterNormals = true;
     public bool calculateWaterFlows = false;
     public float fluidDensity = 1030.0f;
+    public float airDensity = 1.29f;
     //public float fluidDensity = 1.03f;
     public float buoyantForceCoefficient = 1.0f;// Coefficient by which the the buoyancy forces are multiplied.
     public float slamForceCoefficient = 1.0f;//Coefficient applied to forces when a face of the object is entering the water.
@@ -68,13 +69,18 @@ public class BuoyancySystem : SystemBase
     public Vector3 RigidbodyAngVel = new Vector3(0, 0, 0);//Angular velocity of the target Rigidbody.
     public Vector3 RigidbodyCoM = new Vector3(0, 0, 0);//Center of mass of the target Rigidbody.
     public Vector3 RigidbodyLinearVel = new Vector3(0, 0, 0);//(Linear) velocity of the target Rigidbody.
+    private quaternion RigidbodyRotation;
+    private Vector3 RigidbodyXDir = new Vector3(0, 0, 0);
+    private Vector3 RigidbodyYDir = new Vector3(0, 0, 0);
     private Vector3[] ResultCenters;//Result triangle centers in world coordinates.
     private float[] ResultAreas;//Result triangle areas.
-    private float[] ResultDistances;//Result distances to water surface.
+    private float[] ResultDistances;//Result distances to water surface.（转化成distanceToSurface）
     public Vector3 ResultForce;//Total result force.
     public Vector3[] ResultForces;//Per-triangle result forces.
+    public Vector3 WindForce;//Total wind force.
+    public Vector3[] WindForces;//Per-triangle wind forces.
     public Vector3[] ResultNormals;// Result triangle normals. Not equal to the mesh normals.
-    public Vector3[] ResultP0s;//Result sliced triangle vertices.
+    public Vector3[] ResultP0s;//Result sliced triangle vertices.（都在左边，实际上并没有用上）
     /// <summary>
     /// Result triangle states.
     ///     0 - Triangle is under water
@@ -100,6 +106,7 @@ public class BuoyancySystem : SystemBase
     private float _dst0, _dst1;
 
     private float time;
+    private float TotalTime;
     //-------------------------------------------------------------
     protected override void OnStartRunning()
     {
@@ -160,6 +167,7 @@ public class BuoyancySystem : SystemBase
             ResultVelocities = new Vector3[triangleCount];
             ResultP0s = new Vector3[triangleCount * 6];
             ResultForces = new Vector3[triangleCount];
+            WindForces = new Vector3[triangleCount];
             ResultCenters = new Vector3[triangleCount];
             ResultNormals = new Vector3[triangleCount];
             ResultAreas = new float[triangleCount];
@@ -180,6 +188,13 @@ public class BuoyancySystem : SystemBase
         })
         .WithoutBurst()
         .Run();
+
+
+        CLF1 = b10 + b11 * AL / (LOA * B) + b12 * C / LOA;
+        CLF2 = b20 + b21 * B / LOA + b22 * HC / LOA + b23 * AOD / (LOA * LOA) + b24 * AF / (B * B);
+
+        CYM1 = gama10 + gama11 * AF / (LOA * B);
+        CYM2 = gama20 + gama21 * AOD / (LOA * LOA);
     }
 
     protected override void OnUpdate()
@@ -254,6 +269,15 @@ public class BuoyancySystem : SystemBase
             Debug.Log("translation:" + translation.Value);*/
 
             ResourceLocatorService.Instance.WorldCOM = COM;
+
+            //关于rotation的计算
+            RigidbodyRotation = rotation.Value;
+            Matrix4x4 rot = new Matrix4x4();
+            rot.SetTRS(new Vector3(0, 0, 0), RigidbodyRotation, new Vector3(1, 1, 1));
+            RigidbodyXDir = new Vector3(rot[0, 0], rot[1, 0], rot[2, 0]);
+            RigidbodyYDir = new Vector3(rot[0, 1], rot[1, 1], rot[2, 1]);
+            Debug.Log("RigidbodyXDir:" + RigidbodyXDir);
+            Debug.Log("RigidbodyYDir:" + RigidbodyYDir);
 
             TickWaterObject(
                 //new Vector3(translation.Value.x, translation.Value.y, translation.Value.z),//重心位置，暂时就是translation的中心位置
@@ -591,6 +615,16 @@ public class BuoyancySystem : SystemBase
         torqueSum.y = 0;
         torqueSum.z = 0;
 
+        Vector3 windForceSum;
+        windForceSum.x = 0;
+        windForceSum.y = 0;
+        windForceSum.z = 0;
+
+        Vector3 windTorqueSum;
+        windTorqueSum.x = 0;
+        windTorqueSum.y = 0;
+        windTorqueSum.z = 0;
+
         Vector3 resultForce;
         Vector3 worldCoM = tmpRigidbodyCoM;//世界坐标下的质心位置
         for (int i = 0; i < triangleCount; i++)
@@ -620,16 +654,50 @@ public class BuoyancySystem : SystemBase
                 torqueSum.y += crossDirForce.y;
                 torqueSum.z += crossDirForce.z;
             }
-            //TODO:计算水面上的面片受到的风力
+            if (ResultStates[i] == 2)
+            {
+                //TODO:计算水面上的面片受到的风力合力&力矩
+                resultForce = WindForces[i];
+
+                windForceSum.x += resultForce.x;
+                windForceSum.y += resultForce.y;
+                windForceSum.z += resultForce.z;
+
+                Vector3 resultCenter = ResultCenters[i];
+
+                Vector3 dir;//作用点到质心的距离用来算力矩
+                dir.x = resultCenter.x - worldCoM.x;
+                dir.y = resultCenter.y - worldCoM.y;
+                dir.z = resultCenter.z - worldCoM.z;
+
+                Vector3 rf = WindForces[i];
+                Vector3 crossDirForce;
+                crossDirForce.x = dir.y * rf.z - dir.z * rf.y;
+                crossDirForce.y = dir.z * rf.x - dir.x * rf.z;
+                crossDirForce.z = dir.x * rf.y - dir.y * rf.x;
+
+                windTorqueSum.x += crossDirForce.x;
+                windTorqueSum.y += crossDirForce.y;
+                windTorqueSum.z += crossDirForce.z;
+            }
+
         }
 
         ResultForce.x = forceSum.x * finalForceCoefficient;
         ResultForce.y = forceSum.y * finalForceCoefficient;
         ResultForce.z = forceSum.z * finalForceCoefficient;
 
+        ResultForce += windForceSum;
+        //Debug.Log("windForceSum"+ windForceSum);
+        //Debug.Log("ResultForce" + ResultForce);
+
         ResultTorque.x = torqueSum.x * finalTorqueCoefficient;
         ResultTorque.y = torqueSum.y * finalTorqueCoefficient;
         ResultTorque.z = torqueSum.z * finalTorqueCoefficient;
+
+        ResultTorque += windTorqueSum;
+        //Debug.Log("windTorqueSum" + windTorqueSum);
+        //Debug.Log("ResultTorque" + ResultTorque);
     }
 
     private void CalcTri(int i)
@@ -658,14 +726,19 @@ public class BuoyancySystem : SystemBase
         float d0 = P0.y - wh_P0;
         float d1 = P1.y - wh_P1;
         float d2 = P2.y - wh_P2;
-        //Debug.Log("d0 " + ": " + d0);     确定是越变越小，变成负数
-        //Debug.Log("d1 " + ": " + d1);
-        //Debug.Log("d2 " + ": " + d2);
+
 
         //All vertices are above water//三个点都在水上
         if (d0 >= 0 && d1 >= 0 && d2 >= 0)
         {
             ResultStates[i] = 2;
+            //TODO,计算风力
+            //获取当前位置的风向风速，传入进去
+            Vector3 windSpeed = GetWindAtPosition(new float3(P0.x, P0.y, P0.z));
+            CalculateWindForces(P0, P1, P2,i,
+            windSpeed,
+            ref WindForces[i], ref ResultCenters[i],
+            ref ResultAreas[i]);
             return;
         }
 
@@ -780,6 +853,105 @@ public class BuoyancySystem : SystemBase
         }
     }
 
+    private void CalculateWindForces(in Vector3 p0, in Vector3 p1, in Vector3 p2,in int index,
+        in Vector3 windSpeed,
+        ref Vector3 windForce, ref Vector3 center, ref float area)
+    {
+        windForce.x = 0;
+        windForce.y = 0;
+        windForce.z = 0;
+
+        //计算重心
+        center.x = (p0.x + p1.x + p2.x) * 0.3333333333f;
+        center.y = (p0.y + p1.y + p2.y) * 0.3333333333f;
+        center.z = (p0.z + p1.z + p2.z) * 0.3333333333f;
+
+        area = 0;
+
+        Vector3 u;
+        u.x = p1.x - p0.x;
+        u.y = p1.y - p0.y;
+        u.z = p1.z - p0.z;
+
+        Vector3 v;
+        v.x = p2.x - p0.x;
+        v.y = p2.y - p0.y;
+        v.z = p2.z - p0.z;
+
+        Vector3 crossUV;//向内的法向
+        crossUV.x = u.y * v.z - u.z * v.y;
+        crossUV.y = u.z * v.x - u.x * v.z;
+        crossUV.z = u.x * v.y - u.y * v.x;
+
+        float crossMagnitude = crossUV.x * crossUV.x + crossUV.y * crossUV.y + crossUV.z * crossUV.z;
+        if (crossMagnitude < 1e-8f)//为了避免下面倒数过大
+        {
+            ResultStates[index] = 2;//标记为在水面上
+            return;
+        }
+
+        float invSqrtCrossMag = 1f / Mathf.Sqrt(crossMagnitude);
+        crossMagnitude *= invSqrtCrossMag;//单位向量化，总之现在M=sqrt（u×v），就是向量的长度了
+
+        Vector3 normal;                             //面片的法线
+        normal.x = crossUV.x * invSqrtCrossMag;     //单位向量化
+        normal.y = crossUV.y * invSqrtCrossMag;
+        normal.z = crossUV.z * invSqrtCrossMag;
+        ResultNormals[index] = normal;
+
+        Vector3 p; //面片重心到刚体重心的距离
+        p.x = center.x - RigidbodyCoM.x;
+        p.y = center.y - RigidbodyCoM.y;
+        p.z = center.z - RigidbodyCoM.z;
+
+        Vector3 crossAngVelP;//计算刚体坐标系下的速度v=d*w
+        crossAngVelP.x = RigidbodyAngVel.y * p.z - RigidbodyAngVel.z * p.y;
+        crossAngVelP.y = RigidbodyAngVel.z * p.x - RigidbodyAngVel.x * p.z;
+        crossAngVelP.z = RigidbodyAngVel.x * p.y - RigidbodyAngVel.y * p.x;
+
+        Vector3 velocity;//计算三角面片在世界坐标系下的速度
+        velocity.x = crossAngVelP.x + RigidbodyLinearVel.x;
+        velocity.y = crossAngVelP.y + RigidbodyLinearVel.y;
+        velocity.z = crossAngVelP.z + RigidbodyLinearVel.z;
+
+        area = crossMagnitude * 0.5f;       //叉乘算三角形面积
+        //上面计算的结果，就得到了面片的速度和面积
+        ResultVelocities[index] = velocity;
+        ResultAreas[index] = area;
+        //粘滞力先不管，计算风力
+
+        float gama = Vector3.Dot(normal, windSpeed);
+        if (gama >= 0)
+        {
+            return;//只保留迎风的那面
+        }
+
+        //相对风速
+        Vector3 UA = windSpeed - velocity;
+        //船舶的纵向x方向向量
+        Vector3 xDir = -RigidbodyYDir;//实际是-y方向
+        //船舶的横向y方向向量
+        Vector3 yDir = RigidbodyXDir;//实际是x方向
+        //风向角,windDir和xdir的夹角
+        float phi = Vector3.Angle(windSpeed, xDir) * 180.0f / math.PI;//度为单位,转化为弧度
+        //x方向载荷系数
+        float Cx = GetCx(phi);
+        //Debug.Log("Cx"+Cx);
+        //y方向载荷系数
+        float Cy = GetCy(phi);
+        //Debug.Log("Cy" + Cy);
+
+        float cosAlpha = Vector3.Dot(normal, xDir);
+        float Sx = area * cosAlpha;
+
+        float cosBeta = Vector3.Dot(normal, yDir);
+        float Sy = area * cosBeta;
+
+        windForce.x = Cx * airDensity * UA.magnitude * UA.magnitude * Sx;
+        windForce.z = Cy * airDensity * UA.magnitude * UA.magnitude * Sy;
+        //实际世界坐标系下的横向其实是z，y是重力方向
+    }
+
     private void CalculateForces(in Vector3 p0, in Vector3 p1, in Vector3 p2,
     in float dist0, in float dist1, in float dist2,
     in int index, in int i0, in int i1, in int i2,
@@ -807,7 +979,7 @@ public class BuoyancySystem : SystemBase
         v.y = p2.y - p0.y;
         v.z = p2.z - p0.z;
 
-        Vector3 crossUV;//向内的法向
+        Vector3 crossUV;//(向内) 向外的法向（因为下面需要算出来volum是负数才对）
         crossUV.x = u.y * v.z - u.z * v.y;
         crossUV.y = u.z * v.x - u.x * v.z;
         crossUV.z = u.x * v.y - u.y * v.x;
@@ -1385,4 +1557,188 @@ public class BuoyancySystem : SystemBase
         //return tmpNormal;
     }
 
+    private Vector3 GetWindAtPosition(float3 position)
+    {
+        Vector3 windSpeed = new Vector3(1.0f,0.0f,0.0f);
+
+        Vector3 windDir = new Vector3(1.0f, 0.0f, 0.0f);//风向可能用一个函数来代替
+
+        //风速=定常风+脉动风
+        float constantWind = 5.0f;//定常风可能用一个函数来代替
+
+        float pulseWind = Davenport(constantWind);
+
+        float U10 = constantWind + pulseWind;
+        //Debug.Log("U10"+ U10);
+        float Uz = U10 * math.pow(position.y / 10.0f, 0.125f);//y是高度
+        //Debug.Log("Uz" + Uz);
+        windSpeed = windDir * Uz;
+
+        return windSpeed;
+    }
+
+    private float Davenport(float U)
+    {
+        float pulseWind = 0.0f;
+        //TotalTime
+        float fmax = 6.0f;
+        int sampleN = 600;
+        float deltaf = fmax / sampleN;
+        TotalTime += time;
+        if (TotalTime > (2 * math.PI / deltaf))
+        {
+            TotalTime = time;
+        }
+        float Cd = (float)(0.001 + 6 * 0.00001 * U);
+        for (int i = 1; i <= sampleN; ++i)
+        {
+            float f = sampleN * deltaf;
+            float fs = 1200 * f / U;
+            float Sf = U * U / f * Cd * 4 * fs * fs / math.pow(1 + fs * fs, 4.0f / 3.0f);
+            float Ui = math.sqrt(2 * Sf * deltaf);
+            pulseWind += Ui * math.cos(f * TotalTime);
+        }
+        return pulseWind;
+    }
+
+    float LOA = 4.91f;//船长
+    float B = 2.06f;//船宽
+    float AF = 1.5346f;//正面投影面积
+    float AL = 2.6183f;//侧面投影面积
+    float C = 0.5445f;//侧面投影型心到船舶中心的距离
+    float HC = 0.3174f;//侧面投影型心到水线的距离
+    float AOD = 0;//甲板上物体的侧投影面积——测不出来，默认是0
+    float HBR = 0.987f;//最上层建筑物到水面的距离——测不出来，默认是船舶高度
+
+    float a0 = 0.404f;
+    float a1 = 0.386f;
+    float a2 = 0.902f;
+
+    float b10 = -0.922f;
+    float b11 = 0.507f;
+    float b12 = 1.16f;
+    float b20 = 0.018f;
+    float b21 = -5.09f;
+    float b22 = 10.4f;
+    float b23 = -3.01f;
+    float b24 = -0.341f;
+
+    float gama10 = 0.116f;
+    float gama11 =3.35f;
+    float gama20 = 0.446f;
+    float gama21 = 2.19f;
+
+    float delta10 = 0.458f;
+    float delta11 = 3.25f;
+    float delta12 = -2.31f;
+    float delta20 = -1.9f;
+    float delta21 = 12.7f;
+    float delta22 = 24.4f;
+    float delta23 = -40.3f;
+    float delta24 = -5.48f;
+
+    float ep10 = -0.585f;
+    float ep11 = -0.906f;
+    float ep12 = 3.24f;
+    float ep20 = -0.314f;
+    float ep21 = -1.12f;
+
+    float CLF1 = 0.0f;
+    float CLF2 = 0.0f;
+    float CYM1 = 0.0f;
+    float CYM2 = 0.0f;
+    float CXLI1 = 0.0f;
+    float CXLI2 = 0.0f;
+    float CALF1 = 0.0f;
+    float CALF2 = 0.0f;
+    private float GetCx(float phi)//根据风向角phi计算x方向的风载荷系数
+    {
+        float CLF = 0.0f;//主流阻力
+        CLF1 = b10 + b11 * AL / (LOA * B) + b12 * C /LOA ;
+        CLF2 = b20 + b21 * B / LOA + b22 * HC / LOA + b23 * AOD / (LOA * LOA) + b24 * AF / (B * B);
+        if (phi <= math.PI / 2)
+        {
+            CLF = CLF1 * math.cos(phi);
+        }
+        else {
+            CLF = -CLF2 * math.cos(phi);
+        }
+       
+        float CXLI = 0.0f;
+        CXLI1 = delta10 + delta11 * AL / (LOA * HBR) + delta12 * AF / (B * HBR);
+        CXLI2 = delta20 + delta21 * AL / (LOA * HBR) + delta22 * AF / AL + delta23 * B / LOA + delta24 * AF / (B * HBR);
+        if (phi <= math.PI / 2)
+        {
+            CXLI = CXLI1;
+        }
+        else
+        {
+            CXLI = CXLI2;
+        }
+
+        float CALF = 0.0f;
+        CALF1 = ep10 + ep11 * AOD / AL + ep12 * B / LOA;
+        CALF2 = ep20 + ep21 * AOD / AL;
+        if (phi <= math.PI / 2)
+        {
+            CALF = CALF1;
+        }
+        else
+        {
+            CALF = CXLI2;
+        }
+        float CX = CLF + CXLI * (math.sin(phi)
+            - 0.5f * math.sin(phi) * math.cos(phi) * math.cos(phi)) * math.sin(phi) * math.cos(phi)
+            + CALF * math.sin(phi) * math.cos(phi) * math.cos(phi) * math.cos(phi);
+
+        return CX;
+    }
+    private float GetCy(float phi)
+    {
+        //根据风向角phi计算y方向的风载荷系数
+
+        float CCF = 0.0f;
+        CCF = a0 + a1 * AF / (B * HBR) + a2 * HBR / LOA;
+
+        float CYLI = 0.0f;
+        float CYM = 0.0f;
+        CYM1 = gama10 + gama11 * AF / (LOA * B);
+        CYM2 = gama20 + gama21 * AOD / (LOA * LOA);
+        if (phi <= (math.PI / 2))
+        {
+            CYM = CYM1;
+        }
+        else {
+            CYM = CYM2;
+        }
+        CYLI = math.PI * AL / (LOA * LOA) + CYM;
+
+        float CY = CCF * math.sin(phi) * math.sin(phi)
+            + CYLI * (math.cos(phi) + 0.5f * math.sin(phi) * math.sin(phi) * math.cos(phi)) * math.sin(phi) * math.cos(phi);
+
+        return CY;
+    }
+    private float GetCn(float phi)
+    {
+        //根据风向角phi计算艏摇的风载荷系数
+
+        float CY = GetCy(phi);
+        float CN = CY * (0.927f * C / LOA - 0.149f * (phi - math.PI / 2.0f));
+        return CN;
+    }
+    private float GetCk(float phi)
+    {
+        //根据风向角phi计算横摇的风载荷系数
+        float CY = GetCy(phi);
+        float HL = HC / LOA;
+        float CK;
+        if (HL <= 0.097)
+        {
+            CK = CY * (0.0737f * (float)math.pow(HL, -0.821f));
+        }
+        else {
+            CK = CY * 0.5f;
+        }
+        return CK;
+    }
 }

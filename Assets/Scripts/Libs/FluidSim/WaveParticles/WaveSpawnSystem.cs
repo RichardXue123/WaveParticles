@@ -25,7 +25,7 @@ namespace OneBitLab.FluidSim
         public float m_windSpeed = 0.5f;
         private const float gravity = 9.8f;
 
-        private const int c_StartEntitiesCount = 1000000; //300
+        private const int c_StartEntitiesCount = 0;//1000000; //300
 
         public static float s_WaveParticleMinHeight = c_WaveParticleHeight;
 
