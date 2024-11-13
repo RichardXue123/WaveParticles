@@ -12,11 +12,11 @@ namespace OneBitLab.Services
         public int M=40;
         public int L=10;
         [UnityEngine.Tooltip("Local Center of Mass")]
-        public float3 COM = new float3(0, 0, 0);
+        public Vector3 COM = new Vector3(0, 0, 0);
         public Mesh simulationMesh;
         public Vector3 WorldCOM = new Vector3(0, 0, 0);
-        public Vector3 inertiaTensor = new Vector3(0, 0, 0);
-        public Quaternion intertiaRotation;
+        //public Vector3 inertiaTensor = new Vector3(0, 0, 0);
+        //public Quaternion intertiaRotation;
 
         //船舶风载荷系数相关
         public float LOA = 4.91f;//船长

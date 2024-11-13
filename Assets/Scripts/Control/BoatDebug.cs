@@ -29,10 +29,11 @@ public class BoatDebug : MonoBehaviour
         Gizmos.DrawSphere(worldCoM, 0.05f);
         Handles.Label(worldCoM, "CoM");
         ResourceLocatorService.Instance.WorldCOM = worldCoM;
-        ResourceLocatorService.Instance.inertiaTensor = targetRigidbody.inertiaTensor;
-        ResourceLocatorService.Instance.intertiaRotation = targetRigidbody.inertiaTensorRotation;
-        Debug.Log("Update Inertia:" + targetRigidbody.inertiaTensor);
-        Debug.Log("Update intertiaRotation:" + targetRigidbody.inertiaTensorRotation.x + ","+ targetRigidbody.inertiaTensorRotation.y + "," + targetRigidbody.inertiaTensorRotation.z);
+        Debug.Log("Update centerOfMass:" );//+ centerOfMass
+        //ResourceLocatorService.Instance.inertiaTensor = targetRigidbody.inertiaTensor;
+        //ResourceLocatorService.Instance.intertiaRotation = targetRigidbody.inertiaTensorRotation;
+        //Debug.Log("Update Inertia:" + targetRigidbody.inertiaTensor);
+        //Debug.Log("Update intertiaRotation:" + targetRigidbody.inertiaTensorRotation.x + ","+ targetRigidbody.inertiaTensorRotation.y + "," + targetRigidbody.inertiaTensorRotation.z);
 #endif
     }
 }

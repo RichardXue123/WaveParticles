@@ -762,7 +762,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 138306510}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.019, y: 0.908, z: -3.162}
+  m_LocalPosition: {x: -1.019, y: 0.201, z: -3.542}
   m_LocalScale: {x: 0.1, y: 0.1, z: 0.1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -4051,9 +4051,7 @@ MonoBehaviour:
     y: -0.28
     z: -0.85
   simulationMesh: {fileID: 4300000, guid: e2ba29a353fa7954cb4690485c18a149, type: 2}
-  WorldCOM: {x: -0.76, y: -0.70000017, z: -1.0099999}
-  inertiaTensor: {x: 1249.717, y: 247.67654, z: 1388.8024}
-  intertiaRotation: {x: 0.0062060724, y: 0.003914045, z: 0.0008761656, w: 0.99997276}
+  WorldCOM: {x: -0.76, y: -0.27500007, z: -1.1499999}
   LOA: 4.91
   B: 2.06
   AF: 1.5346
@@ -4621,7 +4619,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1331367599}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.25, y: 0.274, z: -1.54}
+  m_LocalPosition: {x: -1.03, y: 0.274, z: 1.43}
   m_LocalScale: {x: 0.1, y: 0.1, z: 0.1}
   m_Children: []
   m_Father: {fileID: 0}
