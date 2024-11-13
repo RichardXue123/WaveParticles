@@ -288,8 +288,8 @@ public class BuoyancySystem : SystemBase
             rot.SetTRS(new Vector3(0, 0, 0), RigidbodyRotation, new Vector3(1, 1, 1));
             RigidbodyXDir = new Vector3(rot[0, 0], rot[1, 0], rot[2, 0]);
             RigidbodyYDir = new Vector3(rot[0, 1], rot[1, 1], rot[2, 1]);
-            Debug.Log("RigidbodyXDir:" + RigidbodyXDir);
-            Debug.Log("RigidbodyYDir:" + RigidbodyYDir);
+            //Debug.Log("RigidbodyXDir:" + RigidbodyXDir);
+            //Debug.Log("RigidbodyYDir:" + RigidbodyYDir);
 
             TickWaterObject(
                 //new Vector3(translation.Value.x, translation.Value.y, translation.Value.z),//重心位置，暂时就是translation的中心位置
@@ -318,7 +318,7 @@ public class BuoyancySystem : SystemBase
             Debug.Log("physicsMass.InverseInertia:" + physicsMass.InverseInertia);
             Debug.Log("physicsMass.Transform:" + physicsMass.Transform);*/
             //Debug.Log("ResultForce:" + ResultForce.y);
-            Debug.Log("ResultTorque" + ResultTorque);
+            //Debug.Log("ResultTorque" + ResultTorque);
             //Debug.Log("GravityForce" + GravityForce);
 /*            if (time > 0.03)
             {

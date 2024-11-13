@@ -26,10 +26,10 @@ public class BuoyancyDebugSystem : SystemBase
     // Update is called once per frame
     protected override void OnUpdate()
     {
-        Debug.Log("BuoyancyDebugSystem UPDATE");
+        //Debug.Log("BuoyancyDebugSystem UPDATE");
         Entities.WithAll<Tag_Player, Simulation_Mesh>().ForEach((ref Translation translation, ref Rotation rotation, in RenderMesh renderMesh) =>
         {
-            Debug.Log("Tag_Player with SimulationMesh");
+            //Debug.Log("Tag_Player with SimulationMesh");
         })
         .WithoutBurst()
         .Run();
