@@ -4046,12 +4046,9 @@ MonoBehaviour:
   N: 0
   M: 0
   L: 10
-  COM:
-    x: 0
-    y: -0.28
-    z: -0.85
+  COM: {x: 0, y: -0.28, z: -0.85}
   simulationMesh: {fileID: 4300000, guid: e2ba29a353fa7954cb4690485c18a149, type: 2}
-  WorldCOM: {x: -0.76, y: -0.27500007, z: -1.1499999}
+  WorldCOM: {x: -0.76, y: -0.70000017, z: -1.0099999}
   LOA: 4.91
   B: 2.06
   AF: 1.5346

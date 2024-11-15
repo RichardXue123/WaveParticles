@@ -14,15 +14,11 @@ using UnityEditor;
 public class BuoyancySystem : SystemBase
 {
     private RenderTexture m_HeightFieldRT;
-    private Texture2D m_HeightFieldTex;
+    private Texture2D m_HeightFieldTex;//两者的区别在于，前者只有RFloat一个通道，后者有四个
     private Texture2D m_HeightFieldTex32;
-    private Material m_FilterMat;
     NativeArray<float> pixData;
     Mesh waterMesh;
     Matrix4x4 waterMatrix;
-    bool flag = true;
-    bool flag1 = true;
-    bool objectFlag = true;
 
     // Vertices used for simulation, in local space.
     public Vector3[] LocalVertices;
@@ -131,13 +127,11 @@ public class BuoyancySystem : SystemBase
         Entities.WithAll<Tag_Player>().ForEach((
             ref Translation translation, 
             ref Rotation rotation, 
-            ref Unity.Physics.PhysicsMass physicsMass, 
-            in RenderMesh renderMesh) =>
+            ref Unity.Physics.PhysicsMass physicsMass) =>
         {
             Debug.Log("Tag_Player");
-            Mesh mesh = renderMesh.mesh;
             //mesh改成resource locator的mesh
-            mesh = ResourceLocatorService.Instance.simulationMesh;
+            Mesh mesh = ResourceLocatorService.Instance.simulationMesh;
             LocalVertices = mesh.vertices;
             TriIndices = mesh.triangles;
             vertexCount = LocalVertices.Length;
@@ -212,13 +206,11 @@ public class BuoyancySystem : SystemBase
     protected override void OnUpdate()
     {
         // 模拟的环境参数，例如重力和水密度
-        float gravity = 9.81f; // 地球重力加速度，单位m/s^2
+/*        float gravity = 9.81f; // 地球重力加速度，单位m/s^2
         float waterDensity = 1.000f; // 水的密度，单位kg/m^3
         float Volume = 1;
-        //float mass = 200000;
-        //float mass = 400;
-        float mass = 20;
-        //float time = Time.DeltaTime;
+        float mass = 20;*/
+
         time = Time.DeltaTime;
         Entities.WithAll<Tag_Water>().ForEach((in RenderMesh renderMesh, in LocalToWorld localToWorld) =>
         {
@@ -233,7 +225,7 @@ public class BuoyancySystem : SystemBase
             /*Matrix4x4 matrix= localToWorld.Value;
             Vector3 localPos = new Vector3(1.0f, 1.0f, 0.5f);
             Vector3 WorldPos = matrix.MultiplyPoint(localPos);*/
-            //Debug.Log("WorldPos" + WorldPos);//变换前后是一样的
+            //Debug.Log("WorldPos" + WorldPos);//变换前后是一样的,也就是说明了，读取出来的water纹理高度就是实际的高度，不用转到世界坐标系下
         })
         .WithoutBurst()
         .Run();
@@ -252,14 +244,13 @@ public class BuoyancySystem : SystemBase
 
             float3 position = translation.Value;
 
-            // 例如从RenderTexture中读取高度值
+            // 从RenderTexture中读取高度值
             RenderTexture.active = m_HeightFieldRT;
-            m_HeightFieldTex.ReadPixels(new Rect(0, 0, m_HeightFieldRT.width, m_HeightFieldRT.height), 0, 0);
-            m_HeightFieldTex.Apply();
+            /*m_HeightFieldTex.ReadPixels(new Rect(0, 0, m_HeightFieldRT.width, m_HeightFieldRT.height), 0, 0);
+            m_HeightFieldTex.Apply();*/
             m_HeightFieldTex32.ReadPixels(new Rect(0, 0, m_HeightFieldRT.width, m_HeightFieldRT.height), 0, 0);
             m_HeightFieldTex32.Apply();
-            //NativeArray<float> pixData = m_HeightFieldTex.GetRawTextureData<float>();
-            pixData = m_HeightFieldTex.GetRawTextureData<float>();
+            //pixData = m_HeightFieldTex.GetRawTextureData<float>();
             Color color = m_HeightFieldTex32.GetPixel(m_HeightFieldRT.width / 2, m_HeightFieldRT.height / 2);
 
             //Debug.Log("color:" + color);
@@ -269,7 +260,6 @@ public class BuoyancySystem : SystemBase
             */
 
             //重心坐标转化到世界坐标
-
             Vector3 localCOM = ResourceLocatorService.Instance.COM;// physicsMass.CenterOfMass+ 加上一个offset，换成从resource读取的  ResourceLocatorService.Instance.COM
             //physicsMass.CenterOfMass = localCOM;
             _localToWorldMatrix = localToWorld.Value;
@@ -330,264 +320,10 @@ public class BuoyancySystem : SystemBase
             velocity.ApplyLinearImpulse(physicsMass, GravityForce * time);
             velocity.ApplyAngularImpulse(physicsMass, ResultTorque * time);
             
-
-
-            //time = Time.DeltaTime;
-            //----手动计算----
-            /*
-            // 计算线性加速度：F = ma -> a = F/m
-            //if (ResultForce.y/mass > 86) ResultForce.y = 86 * mass;
-            float3 linearAcceleration = new float3(ResultForce.x / 100, ResultForce.y, ResultForce.z / 100) / mass;
-            //Debug.Log("linearAcceleration " + ": " + linearAcceleration);
-
-            // 计算角加速度：τ = Iα -> α = τ/I
-            ResultForce.y = ResultForce.y / 100;
-            ResultForce.x = ResultForce.x / 10;
-            //Vector3 tmpAngularAcceleration = ResultForce.normalized;
-            Vector3 tmpAngularAcceleration = ResultTorque.normalized;
-            float3 angularAcceleration = new float3(tmpAngularAcceleration.x, tmpAngularAcceleration.y, tmpAngularAcceleration.z);
-            //float3 angularAcceleration = new float3(ResultForce.x, ResultForce.y, ResultForce.z);
-
-            //// 更新线性速度和角速度
-            //velocity.Linear += linearAcceleration * Time.DeltaTime;
-            //if(flag == true && angularAcceleration.y > 0)
-            //{
-            //    angularAcceleration.y = -angularAcceleration.y;
-            //    flag = false;
-            //}
-            //else if (flag == false && angularAcceleration.y > 0)
-            //{
-            //    flag = true;
-            //}
-            //if (flag1 == true && angularAcceleration.x > 0)
-            //{
-            //    angularAcceleration.y = -angularAcceleration.y;
-            //    flag1 = false;
-            //}
-            //else if (flag1 == false && angularAcceleration.x > 0)
-            //{
-            //    flag1 = true;
-            //}
-            if (rotation.Value.value.x > 0.1)
-            {
-                rotation.Value.value.x = 0.1f;
-                angularAcceleration.x = -angularAcceleration.x;
-            }
-            if (rotation.Value.value.x < -0.1)
-            {
-                rotation.Value.value.x = -0.1f;
-                angularAcceleration.x = -angularAcceleration.x;
-            }
-            if (rotation.Value.value.z > 0.1)
-            {
-                rotation.Value.value.z = 0.1f;
-                angularAcceleration.z = -angularAcceleration.z;
-            }
-            if (rotation.Value.value.z < -0.1)
-            {
-                rotation.Value.value.z = -0.1f;
-                angularAcceleration.z = -angularAcceleration.z;
-            }
-            //Debug.Log("angularAcceleration " + ": " + angularAcceleration);
-            velocity.Angular += angularAcceleration / 10 * Time.DeltaTime;
-
-            //float3 position1 = new float3(translation.Value.x - 1, translation.Value.y, translation.Value.z);
-            //float3 position2 = new float3(translation.Value.x + 1, translation.Value.y, translation.Value.z);
-            //if(GetWaterHeightAtPosition(position1) < GetWaterHeightAtPosition(position2))
-            //{
-            //    velocity.Angular += new float3(0,0,0.1f);
-            //}
-            //else if(GetWaterHeightAtPosition(position1) > GetWaterHeightAtPosition(position2))
-            //{
-            //    velocity.Angular += new float3(0, 0, -0.1f);
-            //}
-            //float3 position3 = new float3(translation.Value.x, translation.Value.y, translation.Value.z + 1);
-            //float3 position4 = new float3(translation.Value.x, translation.Value.y, translation.Value.z - 1);
-            //if (GetWaterHeightAtPosition(position3) < GetWaterHeightAtPosition(position4))
-            //{
-            //    velocity.Angular += new float3(0.1f, 0, 0);
-            //}
-            //else if(GetWaterHeightAtPosition(position3) > GetWaterHeightAtPosition(position4))
-            //{
-            //    velocity.Angular += new float3(-0.1f, 0, 0);
-            //}
-
-            // Bake data we want to capture in the job
-            int w = m_HeightFieldRT.width;
-            int h = m_HeightFieldRT.height;
-            //float border = 5.0f;
-            float border = HeightFieldSystem.Border;
-            float texelW = 2.0f * border / w;
-            float texelH = 2.0f * border / h;
-            //float texelW = 40.0f / w;
-            //float texelH = 40.0f / h;
-            //Debug.Log("The texelW is: " + texelW);
-
-            float posx = position.x;
-            float posy = position.z;
-            float2 wPos = new float2(posx, posy);
-
-            // Make particle positions start from 0,0 coordinates
-            float2 pos = -wPos + border;
-            // Pixel coordinates with fractional parts
-            float xF = pos.x / texelW;
-            float yF = pos.y / texelH;
-            // Texture pixel indices
-            int x = (int)xF;
-            int y = (int)yF;
-
-            int x0y0 = x + y * w;
-            //Debug.Log("Pos boat is: " + wPos);
-            //Debug.Log("height x0y0 is: " + pixData[x0y0]);
-
-            // 水面高度可以RenderTexture读取
-            //float waterHeight = GetWaterHeightAtPosition(translation.Value);
-            float waterHeight = pixData[x0y0];
-            waterHeight = 100 * waterHeight;
-            float submergedDepth = waterHeight - translation.Value.y;
-
-            // 只有当物体部分或全部在水下时，才计算浮力
-            if (submergedDepth > 0)
-            {
-                float buoyantForceMagnitude = waterDensity * gravity * submergedDepth * Volume;
-                float3 buoyantForce = new float3(0, buoyantForceMagnitude * 100, 0);
-                float3 dragforce = 2f * velocity.Linear;
-                velocity.Linear += (buoyantForce - dragforce) * Time.DeltaTime / mass;
-                //velocity.Linear += new float3(0, 1f, 0);
-                //Debug.Log("velocy is: " + velocity.Linear);
-
-
-                // 平滑调整俯仰角到水平
-                //quaternion targetRotation = quaternion.Euler(0f, 0f, 0f); // 水平旋转
-                //rotation.Value = math.slerp(rotation.Value, targetRotation, 0.02f); // 使用 Slerp 进行平滑插值
-            }
-            ////velocity.Angular = new float3(0, 1, 0);
-            */
         })
             .WithoutBurst()
             .Run();
         //.ScheduleParallel();
-
-        //Dependency.Complete();
-        Entities.WithAll<Tag_Object>().ForEach((ref Translation translation, ref Rotation rotation, ref Unity.Physics.PhysicsVelocity velocity, in LocalToWorld localToWorld) =>
-        {
-            // 在这里等待之前的作业完成
-            Dependency.Complete();
-
-            float3 position = translation.Value;
-
-            // 例如从RenderTexture中读取高度值
-            RenderTexture.active = m_HeightFieldRT;
-            m_HeightFieldTex.ReadPixels(new Rect(0, 0, m_HeightFieldRT.width, m_HeightFieldRT.height), 0, 0);
-            m_HeightFieldTex.Apply();
-            //NativeArray<float> pixData = m_HeightFieldTex.GetRawTextureData<float>();
-            pixData = m_HeightFieldTex.GetRawTextureData<float>();
-
-
-            TickWaterObject(
-                new Vector3(translation.Value.x, translation.Value.y, translation.Value.z),
-                velocity.Linear,
-                velocity.Angular,
-                localToWorld.Value,
-                Physics.gravity
-            );
-
-            // Apply force and torque
-            // 应用力矩和力到速度和角速度
-            // 计算线性加速度：F = ma -> a = F/m
-            //if (ResultForce.y/mass > 86) ResultForce.y = 86 * mass;
-            float3 linearAcceleration = new float3(ResultForce.x / 100, ResultForce.y, ResultForce.z / 100) / mass;
-            //Debug.Log("linearAcceleration " + ": " + linearAcceleration);
-
-            // 计算角加速度：τ = Iα -> α = τ/I
-            ResultForce.y = ResultForce.y / 100;
-            ResultForce.x = ResultForce.x / 10;
-            //Vector3 tmpAngularAcceleration = ResultForce.normalized;
-            Vector3 tmpAngularAcceleration = ResultTorque.normalized;
-            float3 angularAcceleration = new float3(tmpAngularAcceleration.x, tmpAngularAcceleration.y, tmpAngularAcceleration.z);
-            //float3 angularAcceleration = new float3(ResultForce.x, ResultForce.y, ResultForce.z);
-            if (rotation.Value.value.x > 0.1)
-            {
-                rotation.Value.value.x = 0.1f;
-                angularAcceleration.x = -angularAcceleration.x;
-            }
-            if (rotation.Value.value.x < -0.1)
-            {
-                rotation.Value.value.x = -0.1f;
-                angularAcceleration.x = -angularAcceleration.x;
-            }
-            if (rotation.Value.value.z > 0.1)
-            {
-                rotation.Value.value.z = 0.1f;
-                angularAcceleration.z = -angularAcceleration.z;
-            }
-            if (rotation.Value.value.z < -0.1)
-            {
-                rotation.Value.value.z = -0.1f;
-                angularAcceleration.z = -angularAcceleration.z;
-            }
-            //Debug.Log("angularAcceleration " + ": " + angularAcceleration);
-            velocity.Angular += angularAcceleration / 10 * Time.DeltaTime;
-
-            // Bake data we want to capture in the job
-            int w = m_HeightFieldRT.width;
-            int h = m_HeightFieldRT.height;
-            //float border = 5.0f;
-            float border = HeightFieldSystem.Border;
-            float texelW = 2.0f * border / w;
-            float texelH = 2.0f * border / h;
-            //float texelW = 40.0f / w;
-            //float texelH = 40.0f / h;
-            //Debug.Log("The texelW is: " + texelW);
-
-            float posx = position.x;
-            float posy = position.z;
-            float2 wPos = new float2(posx, posy);
-
-            // Make particle positions start from 0,0 coordinates
-            float2 pos = -wPos + border;
-            // Pixel coordinates with fractional parts
-            float xF = pos.x / texelW;
-            float yF = pos.y / texelH;
-            // Texture pixel indices
-            int x = (int)xF;
-            int y = (int)yF;
-
-            int x0y0 = x + y * w;
-            //Debug.Log("Pos boat is: " + wPos);
-            //Debug.Log("height x0y0 is: " + pixData[x0y0]);
-
-            // 水面高度可以RenderTexture读取
-            //float waterHeight = GetWaterHeightAtPosition(translation.Value);
-            float waterHeight = pixData[x0y0];
-            waterHeight = 100 * waterHeight;
-            float submergedDepth = waterHeight - translation.Value.y;
-
-            // 只有当物体部分或全部在水下时，才计算浮力
-            if (submergedDepth > 0)
-            {
-                float buoyantForceMagnitude = waterDensity * gravity * submergedDepth * Volume;
-                float3 buoyantForce = new float3(0, buoyantForceMagnitude * 10, 0);
-                float3 dragforce = 2f * velocity.Linear;
-                velocity.Linear += (buoyantForce - dragforce) * Time.DeltaTime / mass;
-                //velocity.Linear += new float3(0, 1f, 0);
-                //Debug.Log("velocy is: " + velocity.Linear);
-            }
-            if (objectFlag == true && translation.Value.y < 0)
-            {
-                var messageQueue = MessageService.Instance.GetOrCreateMessageQueue<ParticleSpawnMessage>();
-                messageQueue.Enqueue(new ParticleSpawnMessage { Pos = translation.Value });
-                objectFlag = false;
-            }
-            if (objectFlag == false && translation.Value.y > 0)
-            {
-                objectFlag = true;
-            }
-
-        })
-        .WithoutBurst()
-        .Run();
-
 
     }
     private void TickWaterObject(Vector3 rigidbodyCoM, Vector3 rigidbodyLinVel, Vector3 rigidbodyAngVel, Matrix4x4 l2wMatrix, Vector3 gravity)
@@ -606,10 +342,9 @@ public class BuoyancySystem : SystemBase
 
         //Debug.Log("Vertex " + 0 + ": " + LocalVertices[0]);
         //Debug.Log("Vertex " + 0 + ": " + WorldVertices[0]);
-
         //Debug.Log("triangleCount " + 0 + ": " + triangleCount);           832个
 
-        //TODO: 顶点坐标已经变换，可以更新WaterHeights（也可以就保持现在这样，用一个函数即可）
+        //TODO: 顶点坐标已经变换，可以更新WaterHeights[]（也可以就保持现在这样，用一个函数去调用即可）
 
         for (int i = 0; i < triangleCount; i++)
         {
@@ -1397,28 +1132,13 @@ public class BuoyancySystem : SystemBase
     {
         // 这个函数需要根据你的具体实现来编写
         // 例如从RenderTexture中读取高度值
-        //NativeArray<float> pixData = m_HeightFieldTex.GetRawTextureData<float>();
-        //// Clear texture color to black
-        //Job
-        //    .WithCode(() =>
-        //    {
-        //        for (int i = 0; i < pixData.Length; i++)
-        //        {
-        //            pixData[i] = 0;
-        //        }
-        //    })
-        //    .Schedule();
 
         // Bake data we want to capture in the job
         int w = m_HeightFieldRT.width;
         int h = m_HeightFieldRT.height;
-        //float border = 160.0f;
         float border = HeightFieldSystem.Border;
         float texelW = 2.0f * border / w;
         float texelH = 2.0f * border / h;
-        //float texelW = 40.0f / w;
-        //float texelH = 40.0f / h;
-        //Debug.Log("The texelW is: " + texelW);
 
         float posx = position.x;
         float posy = position.z;
@@ -1434,47 +1154,13 @@ public class BuoyancySystem : SystemBase
         int y = (int)yF;
         //TODO：严格来讲，应该是周围四个点加权的结果
         int x0y0 = x + y * w;
-        //Debug.Log("The height is: " + 160 * pixData[x0y0]);
 
         float waterHeight = m_HeightFieldTex32.GetPixel(x, y).g;//获取G通道，即y，即高度
-
-        //return 32 * 160 * pixData[x0y0];
         return waterHeight;
-
-        //// 获取mesh的顶点和三角形数据
-        //Vector3[] vertices = waterMesh.vertices;
-        //int[] triangles = waterMesh.triangles;
-
-        //// 找到最接近船只位置的顶点
-        //float minDistance = float.MaxValue;
-        //int nearestVertexIndex = -1;
-        //for (int i = 0; i < vertices.Length; i++)
-        //{
-        //    // 将顶点坐标转换到世界坐标系
-        //    Vector3 worldVertex = waterMatrix.MultiplyPoint3x4(vertices[i]);
-        //    float distance = Vector3.Distance(position, worldVertex);
-        //    if (distance < minDistance)
-        //    {
-        //        minDistance = distance;
-        //        nearestVertexIndex = i;
-        //    }
-        //}
-        ////获取变换后的世界坐标系顶点高度 确保 water mesh的"Read/Write Enabled" （读 / 写启用）选项被勾选。
-        //Vector3 transformedVertex = waterMatrix.MultiplyPoint3x4(vertices[nearestVertexIndex]);
-        //float heightAtPosition = transformedVertex.y;
-
-        //Debug.Log("The heightAtPosition is: " + heightAtPosition);
-
-        //return heightAtPosition;
-        ////return 0;
     }
 
     private Vector3 GetWaterNormalAtPosition(float3 position)
     {
-        //RenderTexture.active = m_HeightFieldRT;
-        //m_HeightFieldTex.ReadPixels(new Rect(0, 0, m_HeightFieldRT.width, m_HeightFieldRT.height), 0, 0);
-        //m_HeightFieldTex.Apply();
-        //NativeArray<float> pixData = m_HeightFieldTex.GetRawTextureData<float>();
 
         // Bake data we want to capture in the job
         int w = m_HeightFieldRT.width;
@@ -1512,11 +1198,6 @@ public class BuoyancySystem : SystemBase
         //float heightDown = m_HeightFieldTex.GetPixel(x, y - 1 < 0 ? 0 : y - 1).r;
         //float heightUp = m_HeightFieldTex.GetPixel(x, y + 1 >= h ? h - 1 : y + 1).r;
 
-        /*float heightLeft = 32 * 160 * pixData[x0y0];
-        float heightRight = 32 * 160 * pixData[x1y0];
-        float heightDown = 32 * 160 * pixData[x0y1];
-        float heightUp = 32 * 160 * pixData[x1y1];*/
-
         float heightLeft = m_HeightFieldTex32.GetPixel(x - 1 < 0 ? 0 : x - 1, y).g;
         float heightRight = m_HeightFieldTex32.GetPixel(x + 1 >= w ? w - 1 : x + 1, y).g;
         float heightDown = m_HeightFieldTex32.GetPixel(x, y - 1 < 0 ? 0 : y - 1).g;
@@ -1542,39 +1223,6 @@ public class BuoyancySystem : SystemBase
            Debug.Log("The normal is: " + normal);*/
 
         return normal;
-        //return new Vector3(0, 1, 0);
-
-
-
-
-
-        //// 获取mesh的顶点和三角形数据
-        //Vector3[] vertices = waterMesh.vertices;
-        //int[] triangles = waterMesh.triangles;
-
-        //// 找到最接近船只位置的顶点
-        //float minDistance = float.MaxValue;
-        //int nearestVertexIndex = -1;
-        //for (int i = 0; i < vertices.Length; i++)
-        //{
-        //    // 将顶点坐标转换到世界坐标系
-        //    Vector3 worldVertex = waterMatrix.MultiplyPoint3x4(vertices[i]);
-        //    float distance = Vector3.Distance(position, worldVertex);
-        //    if (distance < minDistance)
-        //    {
-        //        minDistance = distance;
-        //        nearestVertexIndex = i;
-        //    }
-        //}
-        ////获取变换后的世界坐标系顶点高度 确保 water mesh的"Read/Write Enabled" （读 / 写启用）选项被勾选。
-        //Vector3 transformedVertex = waterMatrix.MultiplyPoint3x4(vertices[nearestVertexIndex]);
-        //float heightAtPosition = transformedVertex.y;
-        //// 计算世界坐标系中的法向量
-        //Vector3 tmpNormal = waterMatrix.MultiplyVector(waterMesh.normals[nearestVertexIndex]);
-
-        ////Debug.Log("The tmpNormal is: " + tmpNormal);
-
-        //return tmpNormal;
     }
 
     private Vector3 GetWindAtPosition(float3 position)
