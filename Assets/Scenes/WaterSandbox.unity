@@ -4058,6 +4058,9 @@ MonoBehaviour:
   AOD: 0
   HBR: 0.987
   applyWind: 0
+  WaterForce: {x: 0, y: 0, z: 0}
+  WindForce: {x: 0, y: 0, z: 0}
+  ResultForce: {x: 0, y: 0, z: 0}
 --- !u!4 &1188651674
 Transform:
   m_ObjectHideFlags: 0

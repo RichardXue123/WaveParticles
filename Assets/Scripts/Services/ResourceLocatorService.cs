@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using Unity.Mathematics;
+using UnityEditor;
 
 namespace OneBitLab.Services
 {
@@ -14,7 +15,9 @@ namespace OneBitLab.Services
         [UnityEngine.Tooltip("Local Center of Mass")]
         public Vector3 COM = new Vector3(0, 0, 0);
         public Mesh simulationMesh;
+        [ReadOnly]
         public Vector3 WorldCOM = new Vector3(0, 0, 0);
+        
         //public Vector3 inertiaTensor = new Vector3(0, 0, 0);
         //public Quaternion intertiaRotation;
 
@@ -30,5 +33,34 @@ namespace OneBitLab.Services
 
         public bool applyWind = false;
         //-------------------------------------------------------------
+        [ReadOnly]
+        public Vector3 WaterForce = new Vector3(0, 0, 0);
+        [ReadOnly]
+        public Vector3 WindForce = new Vector3(0, 0, 0);
+        [ReadOnly]
+        public Vector3 ResultForce = new Vector3(0, 0, 0);
+    }
+}
+
+
+public class ReadOnlyAttribute : PropertyAttribute
+{
+
+}
+
+
+[CustomPropertyDrawer(typeof(ReadOnlyAttribute))]
+public class ReadOnlyDrawer : PropertyDrawer
+{
+    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+    {
+        return EditorGUI.GetPropertyHeight(property, label, true);
+    }
+
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+    {
+        GUI.enabled = false;
+        EditorGUI.PropertyField(position, property, label, true);
+        GUI.enabled = true;
     }
 }

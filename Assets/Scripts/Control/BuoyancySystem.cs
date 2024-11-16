@@ -434,11 +434,14 @@ public class BuoyancySystem : SystemBase
         ResultForce.y = forceSum.y * finalForceCoefficient;
         ResultForce.z = forceSum.z * finalForceCoefficient;
 
+        ResourceLocatorService.Instance.WaterForce = ResultForce;
         if (applyWind)
         {
             ResultForce += windForceSum;
         }
-        
+
+        ResourceLocatorService.Instance.WindForce = windForceSum;
+        ResourceLocatorService.Instance.ResultForce = ResultForce;
         //Debug.Log("windForceSum"+ windForceSum);
         //Debug.Log("ResultForce" + ResultForce);
 
