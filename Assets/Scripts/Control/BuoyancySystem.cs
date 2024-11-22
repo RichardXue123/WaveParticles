@@ -255,9 +255,9 @@ public class BuoyancySystem : SystemBase
 
             //Debug.Log("color:" + color);
             //Debug.Log("pixData:" + pixData[m_HeightFieldRT.width / 2 + m_HeightFieldRT.width * m_HeightFieldRT.height / 2]);
-            /*            Debug.Log("translation:" + translation.Value);
-                        Debug.Log("physicsMass.Transform.pos:" + physicsMass.Transform.pos);
-            */
+            //Debug.Log("translation:" + translation.Value);
+            //Debug.Log("physicsMass.Transform.pos:" + physicsMass.Transform.pos);
+
 
             //重心坐标转化到世界坐标
             Vector3 localCOM = ResourceLocatorService.Instance.COM;// physicsMass.CenterOfMass+ 加上一个offset，换成从resource读取的  ResourceLocatorService.Instance.COM
